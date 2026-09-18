@@ -52,7 +52,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [ ] PR opened; open-code-review comments resolved
 
 ### Phase 3: handoff  → PR #3
-- [ ] Task 9: Conversations, tickets and mode state machine
+- [x] Task 9: Conversations, tickets and mode state machine
 - [ ] Task 10: Staff reply through an outbound sender, and ticket close
 - [ ] Task 11: Staff queue and ticket UI behind basic-auth
 
