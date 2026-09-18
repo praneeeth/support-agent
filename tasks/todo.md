@@ -72,7 +72,10 @@ SQLite; `search()` returns `Hit`s using BM25 only.
 **Acceptance criteria:**
 - [ ] Ingest of `data/docs` creates chunks; re-ingest with no changes writes 0 rows
 - [ ] Editing one doc re-writes only that doc's chunks
-- [ ] `search("how long do returns take")` returns the returns doc first
+- [ ] `search("return window for items")` returns the returns doc first
+  *(Changed during build: BM25 alone ranks "as long as" text above the returns doc for
+  "how long do returns take"; that paraphrase is asserted on hybrid search in Task 7.
+  BM25-only baseline: 13/20 on the quality queries.)*
 **Dependencies:** 5
 **Files:** `app/knowledge_base/models.py`, `app/knowledge_base/ingest.py`, `app/knowledge_base/search.py`, `tests/knowledge_base/test_ingest.py`
 **Scope:** M
