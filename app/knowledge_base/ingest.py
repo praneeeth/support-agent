@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -10,7 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.knowledge_base.embed import Embedder, to_blob
 from app.knowledge_base.models import KbChunk, KbDocument
+from app.orders.models import Product
 
+CATALOG_PREFIX = "catalog/"
 _FRONT_MATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
 
 
@@ -92,34 +95,68 @@ def ingest_docs(
     session: Session, docs_dir: Path | str, embedder: Embedder | None = None
 ) -> IngestStats:
     docs_dir = Path(docs_dir)
-    stats = IngestStats()
-    existing = {d.source_path: d for d in session.scalars(select(KbDocument))}
-    seen: set[str] = set()
-
+    sources: list[tuple[str, str, str, str, list[Chunk]]] = []
     for path in sorted(docs_dir.glob("*.md")):
-        rel = path.name
-        seen.add(rel)
         raw = path.read_text(encoding="utf-8")
-        digest = hashlib.sha256(raw.encode()).hexdigest()
-        doc = existing.get(rel)
+        parsed = parse_doc(raw)
+        sources.append(
+            (path.name, _sha(raw), parsed.title, parsed.category,
+             chunk_markdown(parsed.title, parsed.body))
+        )  # fmt: skip
+    return _sync(session, sources, owns=lambda p: not p.startswith(CATALOG_PREFIX),
+                 embedder=embedder)  # fmt: skip
+
+
+def ingest_catalog(session: Session, embedder: Embedder | None = None) -> IngestStats:
+    """One document/chunk per product. Stock is deliberately excluded (it changes constantly;
+    the agent gets live stock from the product tool)."""
+    sources: list[tuple[str, str, str, str, list[Chunk]]] = []
+    for p in session.scalars(select(Product).order_by(Product.sku)):
+        text = (
+            f"{p.name} — Product\n"
+            f"{p.name} (SKU {p.sku}) is in our {p.category} collection and costs "
+            f"₹{float(p.price):,.0f}. {p.description}"
+        )
+        sources.append(
+            (f"{CATALOG_PREFIX}{p.sku}", _sha(text), p.name, "product", [Chunk("Product", text)])
+        )
+    return _sync(session, sources, owns=lambda p: p.startswith(CATALOG_PREFIX), embedder=embedder)
+
+
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _sync(
+    session: Session,
+    sources: list[tuple[str, str, str, str, list[Chunk]]],
+    owns: Callable[[str], bool],
+    embedder: Embedder | None,
+) -> IngestStats:
+    """Make the stored documents under `owns` match `sources` exactly."""
+    stats = IngestStats()
+    existing = {
+        d.source_path: d for d in session.scalars(select(KbDocument)) if owns(d.source_path)
+    }
+    seen: set[str] = set()
+    for path, digest, title, category, chunks in sources:
+        seen.add(path)
+        doc = existing.get(path)
         if doc is not None and doc.content_hash == digest:
             continue
-
-        parsed = parse_doc(raw)
         if doc is None:
-            doc = KbDocument(source_path=rel)
+            doc = KbDocument(source_path=path)
             session.add(doc)
-        doc.title, doc.category, doc.content_hash = parsed.title, parsed.category, digest
+        doc.title, doc.category, doc.content_hash = title, category, digest
         doc.chunks = [
-            KbChunk(chunk_index=i, heading=c.heading, text=c.text)
-            for i, c in enumerate(chunk_markdown(parsed.title, parsed.body))
+            KbChunk(chunk_index=i, heading=c.heading, text=c.text) for i, c in enumerate(chunks)
         ]
         stats.documents_written += 1
-        stats.chunks_written += len(doc.chunks)
-        stats.updated_paths.append(rel)
+        stats.chunks_written += len(chunks)
+        stats.updated_paths.append(path)
 
-    for rel, doc in existing.items():
-        if rel not in seen:
+    for path, doc in existing.items():
+        if path not in seen:
             session.delete(doc)
             stats.documents_deleted += 1
 

@@ -44,7 +44,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [x] Task 5: Write the demo store's policy and FAQ docs
 - [x] Task 6: Ingest and keyword search, end-to-end
 - [x] Task 7: Vector search and hybrid ranking
-- [ ] Task 8: Index the product catalog and add a one-command seed
+- [x] Task 8: Index the product catalog and add a one-command seed
 
 ### Checkpoint B: knowledge-base
 - [ ] Search quality test: correct doc in top-3 for ≥ 18/20 queries
