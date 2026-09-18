@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Skip until app code exists
+        id: gate
+        run: |
+          if [ -f pyproject.toml ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.gate.outputs.run == 'true'
+        run: uv sync --frozen
+      - if: steps.gate.outputs.run == 'true'
+        run: uv run ruff check . && uv run ruff format --check .
+      - if: steps.gate.outputs.run == 'true'
+        run: uv run mypy app
+      - if: steps.gate.outputs.run == 'true'
+        run: uv run pytest -q --cov=app --cov-fail-under=85
+
+  evals:
+    # Real Claude calls — only when agent behaviour could change.
+    needs: checks
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            agent:
+              - 'app/agent/**'
+              - 'app/knowledge_base/**'
+              - 'data/docs/**'
+              - 'evals/**'
+      - if: steps.changes.outputs.agent == 'true' && hashFiles('evals/run.py') != ''
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - if: steps.changes.outputs.agent == 'true' && hashFiles('evals/run.py') != ''
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+        run: |
+          uv sync --frozen
+          uv run python -m app.seed
+          uv run python -m evals.run --min-answer 0.90 --min-escalation 0.95 --summary evals-summary.md
+      - if: always() && hashFiles('evals-summary.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: evals
+          path: evals-summary.md
