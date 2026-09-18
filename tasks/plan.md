@@ -35,7 +35,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [x] Task 3: Verified order-status lookup (leak-proof)
 - [x] Task 4: Lookup lockout and product lookup
 
-### Checkpoint A: orders
+### Checkpoint A: orders (tests, lint, types, coverage 96% — PR pending repo)
 - [ ] All tests pass, lint + types clean, coverage ≥ 85%
 - [ ] Property test (1,000 cases) shows zero cross-customer leaks
 - [ ] PR opened; open-code-review comments resolved
