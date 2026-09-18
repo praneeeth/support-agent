@@ -28,7 +28,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 ## Task list
 
 ### Phase 0: Foundation
-- [ ] Task 1: Project skeleton with health endpoint
+- [x] Task 1: Project skeleton with health endpoint
 
 ### Phase 1: orders  → PR #1
 - [ ] Task 2: Store models and deterministic seed
