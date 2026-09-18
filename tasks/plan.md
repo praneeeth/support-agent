@@ -31,7 +31,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [x] Task 1: Project skeleton with health endpoint
 
 ### Phase 1: orders  → PR #1
-- [ ] Task 2: Store models and deterministic seed
+- [x] Task 2: Store models and deterministic seed
 - [ ] Task 3: Verified order-status lookup (leak-proof)
 - [ ] Task 4: Lookup lockout and product lookup
 
