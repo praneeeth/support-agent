@@ -33,7 +33,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 ### Phase 1: orders  → PR #1
 - [x] Task 2: Store models and deterministic seed
 - [x] Task 3: Verified order-status lookup (leak-proof)
-- [ ] Task 4: Lookup lockout and product lookup
+- [x] Task 4: Lookup lockout and product lookup
 
 ### Checkpoint A: orders
 - [ ] All tests pass, lint + types clean, coverage ≥ 85%
