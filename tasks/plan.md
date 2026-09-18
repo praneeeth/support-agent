@@ -57,9 +57,13 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [x] Task 11: Staff queue and ticket UI behind basic-auth
 
 ### Checkpoint C: Tier 1 complete
-- [ ] All three module specs' acceptance criteria met
-- [ ] `docker compose up` serves health, staff UI and seeded data
-- [ ] `manage_adr` records the tier-1 design decisions in codebase-memory-mcp
+- [x] All three module specs' acceptance criteria met, except the real-model search-quality
+      test (needs huggingface.co; runs in CI)
+- [ ] `docker compose up` serves health, staff UI and seeded data — **not verified**: Docker Hub
+      and ghcr.io are blocked in the build sandbox. The app itself was run with uvicorn and
+      smoke-tested end-to-end (seed, health, auth, queue, reply, close).
+- [x] `manage_adr` records the tier-1 design decisions (also committed as `docs/adr.md`,
+      because the ADR store lives in the local codebase-memory cache, not in git)
 - [ ] Human review before starting `agent-core`
 
 Task details: `tasks/todo.md`.
