@@ -43,7 +43,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 ### Phase 2: knowledge-base  → PR #2
 - [x] Task 5: Write the demo store's policy and FAQ docs
 - [x] Task 6: Ingest and keyword search, end-to-end
-- [ ] Task 7: Vector search and hybrid ranking
+- [x] Task 7: Vector search and hybrid ranking
 - [ ] Task 8: Index the product catalog and add a one-command seed
 
 ### Checkpoint B: knowledge-base

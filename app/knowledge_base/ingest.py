@@ -8,6 +8,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.knowledge_base.embed import Embedder, to_blob
 from app.knowledge_base.models import KbChunk, KbDocument
 
 _FRONT_MATTER = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
@@ -87,7 +88,9 @@ def chunk_markdown(
     return chunks
 
 
-def ingest_docs(session: Session, docs_dir: Path | str) -> IngestStats:
+def ingest_docs(
+    session: Session, docs_dir: Path | str, embedder: Embedder | None = None
+) -> IngestStats:
     docs_dir = Path(docs_dir)
     stats = IngestStats()
     existing = {d.source_path: d for d in session.scalars(select(KbDocument))}
@@ -120,5 +123,20 @@ def ingest_docs(session: Session, docs_dir: Path | str) -> IngestStats:
             session.delete(doc)
             stats.documents_deleted += 1
 
+    session.flush()
+    if embedder is not None:
+        embed_missing(session, embedder)
     session.commit()
     return stats
+
+
+def embed_missing(session: Session, embedder: Embedder, batch_size: int = 64) -> int:
+    """Embed every chunk that has no vector yet. Returns the number embedded."""
+    todo = list(session.scalars(select(KbChunk).where(KbChunk.embedding.is_(None))))
+    for start in range(0, len(todo), batch_size):
+        batch = todo[start : start + batch_size]
+        vectors = embedder.embed_documents([c.text for c in batch])
+        for chunk, vec in zip(batch, vectors, strict=True):
+            chunk.embedding = to_blob(vec)
+    session.commit()
+    return len(todo)

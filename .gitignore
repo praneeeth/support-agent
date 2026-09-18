@@ -8,3 +8,4 @@ __pycache__/
 evals/results/
 evals-summary.md
 .ocr/
+.cache/
