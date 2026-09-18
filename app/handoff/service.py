@@ -12,7 +12,9 @@ from app.handoff.models import (
     Role,
     Ticket,
     TicketStatus,
+    _now,
 )
+from app.handoff.sender import OutboundSender
 
 
 class InvalidTransition(ValueError):
@@ -92,3 +94,39 @@ def record_message(session: Session, conversation_id: str, role: Role, text: str
     session.add(Message(conversation=conv, role=role, text=text))
     session.commit()
     return open_ticket(session, conversation_id) if conv.mode is not Mode.bot else None
+
+
+def _get_ticket(session: Session, ticket_id: int) -> Ticket:
+    ticket = session.get(Ticket, ticket_id)
+    if ticket is None:
+        raise KeyError(ticket_id)
+    return ticket
+
+
+def staff_reply(session: Session, ticket_id: int, text: str, sender: OutboundSender) -> None:
+    """Send a staff message to the customer on the conversation's own channel."""
+    text = text.strip()
+    if not text:
+        raise ValueError("Reply is empty")
+    ticket = _get_ticket(session, ticket_id)
+    if ticket.status is TicketStatus.closed:
+        raise TicketClosed(ticket_id)
+    conv = ticket.conversation
+    sender.send(conv.channel, conv.customer_handle, text)  # send first: record only what went out
+    if conv.mode is Mode.waiting_human:
+        transition(session, conv, Mode.human)
+    session.add(Message(conversation=conv, role=Role.staff, text=text))
+    session.commit()
+
+
+def close_ticket(session: Session, ticket_id: int) -> None:
+    """Close the ticket and hand the conversation back to the bot."""
+    ticket = _get_ticket(session, ticket_id)
+    if ticket.status is TicketStatus.closed:
+        raise TicketClosed(ticket_id)
+    ticket.status = TicketStatus.closed
+    ticket.closed_at = _now()
+    conv = ticket.conversation
+    transition(session, conv, Mode.closed)
+    transition(session, conv, Mode.bot)
+    session.commit()
