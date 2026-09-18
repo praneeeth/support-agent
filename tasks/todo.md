@@ -61,9 +61,9 @@ items, sizing/care guides, contact hours.
 **Acceptance criteria:**
 - [ ] ≥ 30 files, each with `title`, `category`, `updated`
 - [ ] No two docs contradict each other (review checklist in PR description)
-- [ ] 20 search-quality queries drafted, each with its expected doc, in `tests/knowledge_base/queries.yaml`
+- [ ] 20 search-quality queries drafted, each with its expected doc, in `tests/knowledge_base/queries.json`
 **Dependencies:** 1
-**Files:** `data/docs/*.md`, `tests/knowledge_base/queries.yaml`
+**Files:** `data/docs/*.md`, `tests/knowledge_base/queries.json`
 **Scope:** M (content-heavy)
 
 ## Task 6: Ingest and keyword search, end-to-end

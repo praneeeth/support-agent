@@ -57,12 +57,13 @@ CATALOG: dict[str, list[str]] = {
 }
 FINISHES = ["Natural", "Charcoal", "Sage", "Oat", "Terracotta", "Indigo"]
 CARRIERS = ["Blue Dart", "Delhivery", "DHL Express", "FedEx"]
+# Prices in INR.
 PRICE_RANGE: dict[str, tuple[int, int]] = {
-    "kitchen": (15, 180),
-    "bedding": (40, 260),
-    "bath": (18, 120),
-    "decor": (12, 150),
-    "outdoor": (20, 110),
+    "kitchen": (499, 8999),
+    "bedding": (1499, 14999),
+    "bath": (399, 5999),
+    "decor": (299, 7999),
+    "outdoor": (599, 4999),
 }
 
 
@@ -80,7 +81,7 @@ def _products(rng: random.Random) -> list[Product]:
                 name=f"{base} - {finish}",
                 category=cat,
                 description=f"{base} in {finish.lower()}. Part of our {cat} collection.",
-                price=round(rng.uniform(lo, hi), 2),
+                price=float(round(rng.uniform(lo, hi), -1) - 1),  # e.g. 2349
                 stock=rng.choice([0, 0, 3, 8, 15, 25, 40, 60]),
             )
         )

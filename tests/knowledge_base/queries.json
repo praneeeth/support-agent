@@ -1,0 +1,22 @@
+[
+  {"q": "how much is delivery if I spend 1500 rupees", "doc": "shipping-domestic"},
+  {"q": "can you deliver to London", "doc": "shipping-international"},
+  {"q": "who pays import tax on overseas orders", "doc": "shipping-international"},
+  {"q": "what does return requested status mean", "doc": "order-tracking"},
+  {"q": "I want to cancel my order", "doc": "order-changes-cancellation"},
+  {"q": "how many days do I have to send something back", "doc": "returns-policy"},
+  {"q": "can I return a pillow I opened", "doc": "returns-policy"},
+  {"q": "when will I get my money back after returning", "doc": "refunds"},
+  {"q": "swap my sheets for a different size", "doc": "exchanges"},
+  {"q": "my vase arrived broken", "doc": "damaged-items"},
+  {"q": "courier says delivered but nothing arrived", "doc": "missing-package"},
+  {"q": "do you take cash on delivery", "doc": "payment-methods"},
+  {"q": "money got deducted but order failed", "doc": "payment-failed"},
+  {"q": "how long is a gift voucher valid", "doc": "gift-cards"},
+  {"q": "can I use two coupon codes together", "doc": "discount-codes"},
+  {"q": "how do reward points work", "doc": "loyalty-program"},
+  {"q": "is there a guarantee on the dutch oven", "doc": "warranty-kitchen"},
+  {"q": "my skillet is rusty what do I do", "doc": "care-cast-iron"},
+  {"q": "what are the dimensions of a queen bed", "doc": "sizing-bedding"},
+  {"q": "what time is your customer service team available", "doc": "contact-us"}
+]

@@ -41,7 +41,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [ ] PR opened; open-code-review comments resolved
 
 ### Phase 2: knowledge-base  → PR #2
-- [ ] Task 5: Write the demo store's policy and FAQ docs
+- [x] Task 5: Write the demo store's policy and FAQ docs
 - [ ] Task 6: Ingest and keyword search, end-to-end
 - [ ] Task 7: Vector search and hybrid ranking
 - [ ] Task 8: Index the product catalog and add a one-command seed
