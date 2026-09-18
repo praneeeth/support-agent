@@ -54,7 +54,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 ### Phase 3: handoff  → PR #3
 - [x] Task 9: Conversations, tickets and mode state machine
 - [x] Task 10: Staff reply through an outbound sender, and ticket close
-- [ ] Task 11: Staff queue and ticket UI behind basic-auth
+- [x] Task 11: Staff queue and ticket UI behind basic-auth
 
 ### Checkpoint C: Tier 1 complete
 - [ ] All three module specs' acceptance criteria met

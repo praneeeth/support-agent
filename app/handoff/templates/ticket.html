@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+{% block content %}
+<p><a href="/staff">← Queue</a></p>
+<h1>Ticket #{{ ticket.id }} <span class="badge">{{ ticket.reason.value }}</span></h1>
+<p><strong>Customer:</strong> {{ ticket.conversation.customer_handle }} via {{ ticket.conversation.channel.value }}
+  · <strong>Status:</strong> {{ ticket.status.value }}</p>
+<p><strong>Agent summary:</strong> {{ ticket.summary }}</p>
+
+<h2>Conversation</h2>
+<div id="transcript">{% include "_transcript.html" %}</div>
+
+{% if ticket.status.value == "open" %}
+<form hx-post="/staff/tickets/{{ ticket.id }}/reply" hx-target="#transcript" hx-on::after-request="if(event.detail.successful) this.reset()">
+  <textarea name="text" required placeholder="Reply to the customer…"></textarea>
+  <p>
+    <button type="submit">Send reply</button>
+    <button type="button" class="secondary" hx-post="/staff/tickets/{{ ticket.id }}/close"
+            hx-confirm="Close this ticket and hand the conversation back to the bot?">Close ticket</button>
+  </p>
+</form>
+{% endif %}
+{% endblock %}
