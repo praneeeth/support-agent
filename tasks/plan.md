@@ -46,7 +46,7 @@ Dev: `pytest`, `pytest-cov`, `pytest-asyncio`, `hypothesis`, `httpx`, `ruff`, `m
 - [x] Task 7: Vector search and hybrid ranking
 - [x] Task 8: Index the product catalog and add a one-command seed
 
-### Checkpoint B: knowledge-base
+### Checkpoint B: knowledge-base (tests, lint, types, coverage 97% — real-model quality test pending CI; PR pending repo)
 - [ ] Search quality test: correct doc in top-3 for ≥ 18/20 queries
 - [ ] Off-topic query scores below threshold; re-ingest writes 0 rows
 - [ ] PR opened; open-code-review comments resolved
