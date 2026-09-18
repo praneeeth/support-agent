@@ -35,7 +35,7 @@ It never exposes: address, phone, payment details, other orders of the customer.
 
 - Seed is deterministic (same seed → identical DB hash)
 - Property test: for 1,000 random (order_number, email) pairs where email ≠ owner, result is `None`
-- Mismatch and not-found are indistinguishable (same return, same timing within 10 ms)
+- Mismatch and not-found are indistinguishable (same return value, same code path — one query, then compare)
 - 6th failed lookup in one conversation returns `locked`
 - No write methods exist in `app/orders/service.py` (asserted by a test that inspects the module)
 
