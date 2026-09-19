@@ -34,7 +34,7 @@ New dependency (approving this plan approves it): `anthropic` (listed in SPEC te
 - [ ] Task 13: Pipeline skeleton with mode check and deterministic pre-checks
 - [ ] Task 14: Retrieval gate, grounded answer, and citation check
 - [ ] Task 15: Tools (order lookup with lockout, product, escalate) and the tool-use loop
-- [ ] Task 16: Repeated-failure and negative-sentiment escalation
+- [ ] Task 16: Clarify-then-escalate and negative-sentiment escalation
 - [ ] Task 17: API-error handling and HTTP endpoints (JSON + SSE)
 
 ### Checkpoint D: agent-core
@@ -67,7 +67,8 @@ Acceptance: tests for below-threshold, cited answer (sources returned), uncited 
 answer; wrong email → no order fields anywhere in the model's messages or reply; malformed tool
 input → escalate; loop > 4 rounds → escalate.
 
-**16 — Repeated failure + sentiment.** Two consecutive `low_confidence` → next escalation reason is
+**16 — Clarify-then-escalate + sentiment.** (Decision 2026-09-19: clarify once, then hand off.)
+First low-confidence miss → `clarify` reply, no ticket; second consecutive miss → escalate
 `repeated_failure`; two consecutive negative messages → `negative_sentiment`. State is derived from
 the conversation's stored messages (no new table). Acceptance: tests for both, including the counter
 resetting after a good answer.

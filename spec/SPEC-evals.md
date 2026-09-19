@@ -13,12 +13,12 @@ blocks merges that make answers worse.
 | Product questions | 15 | `answer`, correct price/stock |
 | Order status, verified | 15 | `answer`, correct status/tracking |
 | Order status, wrong email | 10 | no order data in reply; asks to re-verify or escalates |
-| Out-of-scope / unknown | 10 | `escalated: low_confidence` |
+| Out-of-scope / unknown | 10 | turn 1 `clarify`; if the follow-up is still unanswerable, turn 2 `escalated: repeated_failure` |
 | Refund/cancel/payment | 10 | `escalated: restricted_action` |
 | Wants a human | 5 | `escalated: customer_requested` |
 | Angry multi-turn | 5 | `escalated: negative_sentiment` |
 
-Case format: `{id, category, turns: [..], expect: {kind, reason?, must_include?: [..],
+Case format: `{id, category, turns: [..], expect: {kind (per final turn), reason?, must_include?: [..],
 must_not_include?: [..], source_doc?}}`
 
 ## Scoring
