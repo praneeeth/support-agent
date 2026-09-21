@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.core import Agent, AgentReply
 from app.agent.llm import AnthropicLLM, LLMClient
+from app.agent.openai_compat import OpenAICompatLLM
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.handoff.models import Channel
@@ -38,8 +39,20 @@ def _get_embedder(settings: Settings) -> Embedder | None:
 
 
 def get_llm() -> LLMClient:
-    settings = get_settings()
-    return AnthropicLLM(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
+    return build_llm(get_settings())
+
+
+def build_llm(settings: Settings) -> LLMClient:
+    """Pick the provider from configuration. Everything else is provider-agnostic."""
+    if settings.llm_provider == "anthropic":
+        return AnthropicLLM(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
+    if settings.llm_provider == "openai_compatible":
+        return OpenAICompatLLM(
+            base_url=settings.llm_base_url,
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
+        )
+    raise ValueError(f"Unknown LLM_PROVIDER {settings.llm_provider!r}")
 
 
 def get_agent(

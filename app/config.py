@@ -19,8 +19,14 @@ class Settings(BaseSettings):
     staff_username: str = "staff"
     staff_password: str = "change-me"  # noqa: S105 - demo default, override via env
 
+    # Provider: "anthropic" (paid API) or "openai_compatible"
+    # (Ollama locally — free — Groq, Google AI Studio, OpenRouter, vLLM, LM Studio).
+    llm_provider: str = "openai_compatible"
     anthropic_api_key: str = ""
     anthropic_model: str = ""
+    llm_base_url: str = "http://localhost:11434/v1"  # Ollama's default
+    llm_model: str = "qwen3:8b"
+    llm_api_key: str = ""
     max_turns_context: int = 10
     reply_max_tokens: int = 500
 

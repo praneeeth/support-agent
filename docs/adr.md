@@ -34,3 +34,7 @@ Decision: a regex decides when a frustration check is worth a model call; Claude
 
 ## ADR-010: Two retrieval thresholds
 Decision: `KB_MIN_SCORE` (0.35) applies to cosine similarity; `KB_MIN_SCORE_KEYWORD` (0.15) applies when the knowledge base has no vectors, because BM25 scores are on a different scale.
+
+## ADR-011: Provider-agnostic model access
+Decision: `OpenAICompatLLM` (app/agent/openai_compat.py) speaks the OpenAI chat API, so Ollama (free, local), Groq, Google AI Studio, OpenRouter, vLLM and LM Studio all work; `LLM_PROVIDER` picks between it and the Anthropic adapter. Messages stay in Anthropic shape internally and are converted at the boundary, including tool_use/tool_result blocks.
+Rationale: no paid account required to run or evaluate the agent; the deterministic guards (escalation, citation check, order verification) are model-independent, so a weaker model costs accuracy, never safety.

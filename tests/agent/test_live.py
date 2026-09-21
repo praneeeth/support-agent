@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.agent.core import Agent
-from app.agent.llm import AnthropicLLM
+from app.agent.routes import build_llm
 from app.config import get_settings
 from app.handoff.models import Channel, EscalationReason
 from app.knowledge_base.embed import HashingEmbedder
@@ -19,11 +19,11 @@ pytestmark = pytest.mark.live
 @pytest.fixture
 def agent(session: Session) -> Agent:
     settings = get_settings()
-    if not (os.getenv("ANTHROPIC_API_KEY") and os.getenv("ANTHROPIC_MODEL")):
-        pytest.skip("ANTHROPIC_API_KEY / ANTHROPIC_MODEL not set")
+    if os.getenv("LIVE_LLM") != "1":
+        pytest.skip("set LIVE_LLM=1 to run against the configured provider")
     ingest_docs(session, settings.docs_dir, embedder=HashingEmbedder())
     kb = KnowledgeBase.load(session, HashingEmbedder())
-    llm = AnthropicLLM(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
+    llm = build_llm(settings)  # Ollama, Groq, Anthropic — whatever .env points at
     return Agent(session=session, kb=kb, llm=llm, settings=settings)
 
 

@@ -61,9 +61,16 @@ jobs:
           python-version: "3.11"
       - if: steps.changes.outputs.agent == 'true' && hashFiles('evals/run.py') != ''
         env:
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
         run: |
+          if [ -z "$LLM_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "No model credentials configured — skipping evals."; exit 0
+          fi
           uv sync --frozen
           uv run python -m app.seed
           uv run python -m evals.run --min-answer 0.90 --min-escalation 0.95 --summary evals-summary.md

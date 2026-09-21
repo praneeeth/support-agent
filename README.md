@@ -29,10 +29,33 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync                       # install dependencies
-cp .env.example .env          # then set ANTHROPIC_API_KEY and ANTHROPIC_MODEL
+cp .env.example .env          # defaults to a free local model (see below)
 uv run python -m app.seed     # demo store data + document ingest (downloads the embedding model)
 uv run uvicorn app.main:app --reload
 ```
+
+### Choosing a model (free by default)
+
+The agent talks to an `LLMClient` interface, so the provider is configuration, not code.
+
+**Free and local — the default.** Install [Ollama](https://ollama.com), then:
+
+```bash
+ollama pull qwen3:8b     # ~5 GB; any tool-calling model works
+ollama serve
+```
+
+`.env` already points at `http://localhost:11434/v1`. No key, no account, nothing leaves your machine.
+
+**Free and hosted.** Same `LLM_PROVIDER=openai_compatible`, different values — Groq, Google AI
+Studio or OpenRouter all expose an OpenAI-compatible endpoint and have a free tier. `.env.example`
+lists the URLs.
+
+**Paid, best quality.** Set `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL`.
+
+Smaller models follow the "cite your source" rule less reliably, so expect more clarify-and-hand-off
+replies. The safety behaviour does not depend on the model: refunds, cancellations and order
+verification are enforced in code, before and after the model runs.
 
 - Staff queue: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
 - Health: http://127.0.0.1:8000/healthz
@@ -49,9 +72,9 @@ keyword-only search and everything still runs.
 ## Checks
 
 ```bash
-uv run pytest -q                 # 135 tests; the slow/live ones skip without a model or API key
+uv run pytest -q                 # 147 tests; the slow/live ones skip without a model or API key
 uv run pytest -q -m slow         # search quality with the real embedding model
-uv run pytest -q -m live         # two calls to the real Claude API
+LIVE_LLM=1 uv run pytest -q -m live   # two calls to whichever provider .env points at
 uv run ruff check . && uv run ruff format --check .
 uv run mypy app
 ```
@@ -68,6 +91,21 @@ spec/                 module specs · tasks/  build plans · docs/adr.md  design
 ```
 
 `CLAUDE.md` tells coding agents how to work in this repo.
+
+## Code review without an API key
+
+[open-code-review](https://github.com/alibaba/open-code-review) has a delegation mode: it picks the
+files and rules, and your coding agent does the reviewing, so no model credentials are needed.
+
+```bash
+npm install -g @alibaba-group/open-code-review
+ocr delegate preview           # which files would be reviewed
+ocr delegate rule <files...>   # the rules to apply, ready to hand to Claude Code
+```
+
+The GitHub Action version posts line-level comments on every PR, and that one does need model
+credentials (`OCR_LLM_TOKEN` + `OCR_LLM_URL`, or `ANTHROPIC_API_KEY`). Without them the workflow
+skips itself and says so in the run summary, rather than failing.
 
 ## Safety rules that are enforced by tests
 
