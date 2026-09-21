@@ -91,7 +91,7 @@ class Agent:
         hits = self.kb.search(text, k=5)
         order_question = policy.is_order_question(text)
         best = hits[0].score if hits else 0.0
-        if not order_question and best < self.settings.kb_min_score:
+        if not order_question and best < self._min_score():
             return self._miss(conversation_id, channel, text)
 
         markers = [f"S{i + 1}" for i in range(len(hits))]
@@ -153,6 +153,11 @@ class Agent:
         )
 
     # ---------- helpers ----------
+
+    def _min_score(self) -> float:
+        """BM25-only scores are not on the same scale as cosine similarity."""
+        hybrid = getattr(self.kb, "hybrid", True)
+        return self.settings.kb_min_score if hybrid else self.settings.kb_min_score_keyword
 
     def _history(self, conversation_id: str) -> list[Message]:
         """Previous turns (excluding the message being handled) in Anthropic format."""

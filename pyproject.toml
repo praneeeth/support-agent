@@ -50,7 +50,10 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
-markers = ["slow: uses the real embedding model"]
+markers = [
+    "slow: uses the real embedding model",
+    "live: calls the real Anthropic API",
+]
 
 [tool.coverage.run]
 source = ["app"]

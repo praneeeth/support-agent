@@ -35,7 +35,7 @@ New dependency (approving this plan approves it): `anthropic` (listed in SPEC te
 - [x] Task 14: Retrieval gate, grounded answer, and citation check
 - [x] Task 15: Tools (order lookup with lockout, product, escalate) and the tool-use loop
 - [x] Task 16: Clarify-then-escalate and negative-sentiment escalation
-- [ ] Task 17: API-error handling and HTTP endpoints (JSON + SSE)
+- [x] Task 17: API-error handling and HTTP endpoints (JSON + SSE)
 
 ### Checkpoint D: agent-core
 - [ ] Spec steps 1–8 each have a passing unit test with the fake client

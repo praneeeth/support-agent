@@ -39,6 +39,7 @@ Also exposed over HTTP for testing and for channels: `POST /v1/messages`, and st
 ## Config
 
 `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `KB_MIN_SCORE` (default 0.35, tuned by evals),
+`KB_MIN_SCORE_KEYWORD` (default 0.15, used when the knowledge base has no vectors),
 `MAX_TURNS_CONTEXT` (10), `REPLY_MAX_TOKENS` (500)
 
 ## Acceptance criteria
