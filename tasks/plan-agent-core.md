@@ -30,7 +30,7 @@ New dependency (approving this plan approves it): `anthropic` (listed in SPEC te
 ## Task list
 
 ### Phase 4: agent-core  → PR #4
-- [ ] Task 12: LLM client interface, fake client, and system prompt
+- [x] Task 12: LLM client interface, fake client, and system prompt
 - [ ] Task 13: Pipeline skeleton with mode check and deterministic pre-checks
 - [ ] Task 14: Retrieval gate, grounded answer, and citation check
 - [ ] Task 15: Tools (order lookup with lockout, product, escalate) and the tool-use loop
@@ -90,3 +90,7 @@ escalation, logged without message bodies. `POST /v1/messages` (JSON) and `POST 
 ## Open questions
 
 - None blocking. Which Claude model to use is set by `ANTHROPIC_MODEL`; that's your call later.
+
+## Build notes
+
+- The Anthropic SDK (1.7.0) uses `httpx2`, not `httpx`; test transports must come from `httpx2`.
