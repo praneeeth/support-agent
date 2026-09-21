@@ -26,8 +26,14 @@ out of bounds. One agent core serves three channels: web chat, email, WhatsApp.
 | `channel-webchat` | Embeddable widget + HTTP/SSE endpoint | agent-core |
 | `channel-email` | Inbound webhook + outbound reply | agent-core |
 | `channel-whatsapp` | WhatsApp Cloud API webhook + send | agent-core |
+| `verticals` | Business-specific config, docs, tools and guardrails per industry | agent-core, evals |
 
-Build order: `knowledge-base`, `orders`, `handoff` → `agent-core` → `evals` → `channel-webchat` → `channel-email` → `channel-whatsapp`
+Build order: `knowledge-base`, `orders`, `handoff` → `agent-core` → `evals` → `verticals` →
+`channel-webchat` → `channel-email` → `channel-whatsapp`
+
+Product direction (2026-09-21): one engine, several industries. `verticals` turns the store-specific
+parts into configuration so hospitality, clinics, real estate and coaching run on the same code.
+See `spec/SPEC-verticals.md`.
 
 Specs written so far: knowledge-base, orders, handoff, agent-core, evals. Channel specs are written
 after `evals` is green, so they build on a measured core.
