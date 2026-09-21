@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     anthropic_api_key: str = ""
     anthropic_model: str = ""
+    max_turns_context: int = 10
+    reply_max_tokens: int = 500
 
 
 @lru_cache

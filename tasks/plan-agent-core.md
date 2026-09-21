@@ -31,10 +31,10 @@ New dependency (approving this plan approves it): `anthropic` (listed in SPEC te
 
 ### Phase 4: agent-core  → PR #4
 - [x] Task 12: LLM client interface, fake client, and system prompt
-- [ ] Task 13: Pipeline skeleton with mode check and deterministic pre-checks
-- [ ] Task 14: Retrieval gate, grounded answer, and citation check
-- [ ] Task 15: Tools (order lookup with lockout, product, escalate) and the tool-use loop
-- [ ] Task 16: Clarify-then-escalate and negative-sentiment escalation
+- [x] Task 13: Pipeline skeleton with mode check and deterministic pre-checks
+- [x] Task 14: Retrieval gate, grounded answer, and citation check
+- [x] Task 15: Tools (order lookup with lockout, product, escalate) and the tool-use loop
+- [x] Task 16: Clarify-then-escalate and negative-sentiment escalation
 - [ ] Task 17: API-error handling and HTTP endpoints (JSON + SSE)
 
 ### Checkpoint D: agent-core

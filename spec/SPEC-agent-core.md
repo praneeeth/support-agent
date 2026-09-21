@@ -32,7 +32,9 @@ Also exposed over HTTP for testing and for channels: `POST /v1/messages`, and st
    `clarify` (bot asks the customer to rephrase/add detail; no ticket). A second consecutive miss
    escalates with `repeated_failure`. A good answer resets the count. Claude calling `escalate`
    with `low_confidence`, or an API error, still escalates immediately with `low_confidence`.
-8. Negative sentiment (Claude-classified, cheap call) on 2 consecutive messages → `negative_sentiment`.
+8. Negative sentiment on 2 consecutive customer messages → `negative_sentiment`. A keyword
+   pre-filter decides when to spend a classification call, then Claude confirms both messages
+   (build note 2026-09-19: avoids one extra call on every message).
 
 ## Config
 
