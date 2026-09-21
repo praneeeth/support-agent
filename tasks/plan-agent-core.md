@@ -38,10 +38,11 @@ New dependency (approving this plan approves it): `anthropic` (listed in SPEC te
 - [x] Task 17: API-error handling and HTTP endpoints (JSON + SSE)
 
 ### Checkpoint D: agent-core
-- [ ] Spec steps 1–8 each have a passing unit test with the fake client
-- [ ] Verification-failure test: no order data reaches the model's context or the reply
-- [ ] Live smoke test (skipped without a key) passes in CI
-- [ ] Coverage ≥ 85%, lint + types clean; PR opened
+- [x] Spec steps 1–8 each have a passing unit test with the fake client
+- [x] Verification-failure test: no order data reaches the model's context or the reply
+- [ ] Live smoke test — written and skipping locally (no API key in the sandbox); runs in CI
+- [x] Coverage 97%, lint + types clean
+- [ ] PR opened — pending the GitHub repo
 
 ## Task details
 
