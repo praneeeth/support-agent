@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     docs_dir: str = "data/docs"
     seed: int = 42
 
-    kb_min_score: float = 0.35  # semantic similarity, used when vectors are available
+    kb_min_score: float = 0.55  # semantic similarity, used when vectors are available
     kb_min_score_keyword: float = 0.15  # BM25 fallback scores sit on a different scale
     embedding_model: str = "BAAI/bge-small-en-v1.5"
 
