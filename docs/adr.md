@@ -38,3 +38,14 @@ Decision: `KB_MIN_SCORE` (0.35) applies to cosine similarity; `KB_MIN_SCORE_KEYW
 ## ADR-011: Provider-agnostic model access
 Decision: `OpenAICompatLLM` (app/agent/openai_compat.py) speaks the OpenAI chat API, so Ollama (free, local), Groq, Google AI Studio, OpenRouter, vLLM and LM Studio all work; `LLM_PROVIDER` picks between it and the Anthropic adapter. Messages stay in Anthropic shape internally and are converted at the boundary, including tool_use/tool_result blocks.
 Rationale: no paid account required to run or evaluate the agent; the deterministic guards (escalation, citation check, order verification) are model-independent, so a weaker model costs accuracy, never safety.
+
+## ADR-012: Integrations are written before their accounts exist
+Decision: every connector and channel adapter is built and tested against mock transports, reads its credentials from configuration at runtime, and reports `not_configured` (with the variable name) until they are set. Its tools are withheld from the model while unconfigured.
+Consequence: a client is switched on by pasting a token, not by a code change or a release; and a broken integration degrades to a handoff rather than a wrong answer.
+
+## ADR-013: Hotel availability comes from iCal, not a PMS
+Decision: `ical_availability` reads the per-listing calendar feeds that Airbnb, Booking.com and Vrbo already publish; busy periods come from those, everything else is free.
+Rationale: small properties rarely run a PMS, and PMS partnerships are slow. One parser covers most of the market with a link the owner copies in one click. A real PMS connector can be added later behind the same interface.
+
+## ADR-014: WhatsApp webhooks are verified and deduplicated in the channel layer
+Decision: signature check (HMAC-SHA256) rejects unsigned requests with 401; a `seen_messages` table makes repeated provider deliveries a no-op; the webhook returns 200 immediately and answers on a background task, because Meta retries on delay.

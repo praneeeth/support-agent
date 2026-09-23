@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434/v1"  # Ollama's default
     llm_model: str = "qwen3:8b"
     llm_api_key: str = ""
+    # WhatsApp (inert until these are set; see docs/integrations.md)
+    whatsapp_token: str = ""
+    whatsapp_phone_id: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_verify_token: str = ""
+
+    # Connectors enabled for this deployment, comma-separated (e.g. "shopify,ical_availability")
+    connectors: str = ""
+
     widget_brand: str = "Northwind Goods"
     widget_greeting: str = "Hi! Ask me about orders, shipping, returns or products."
 

@@ -17,6 +17,8 @@ Built with an automated pipeline: [agent-skills](https://github.com/addyosmani/a
 | `knowledge-base` — 33 policy docs, hybrid keyword + vector search | done |
 | `handoff` — tickets, conversation modes, staff UI | done |
 | `agent-core` — Claude agent, tools, escalation, HTTP API | done |
+| Web chat widget (embed script + demo page) | done |
+| Integrations: Shopify, iCal availability, WhatsApp | built, keys not set |
 | `evals` — golden test set and scoring | next |
 | `channel-webchat` / `channel-email` / `channel-whatsapp` | not started |
 
@@ -57,6 +59,7 @@ Smaller models follow the "cite your source" rule less reliably, so expect more 
 replies. The safety behaviour does not depend on the model: refunds, cancellations and order
 verification are enforced in code, before and after the model runs.
 
+- Demo storefront with the chat widget: http://127.0.0.1:8000/chat/demo
 - Staff queue: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
 - Health: http://127.0.0.1:8000/healthz
 - Ask the agent something:
@@ -91,6 +94,16 @@ spec/                 module specs · tasks/  build plans · docs/adr.md  design
 ```
 
 `CLAUDE.md` tells coding agents how to work in this repo.
+`docs/integrations.md` lists every integration and the variables that switch it on.
+
+## Embedding the widget on a client's site
+
+```html
+<script src="https://your-host/chat/widget.js" defer></script>
+```
+
+That's the whole installation. The widget shows sources under each answer and styles handoffs
+differently, so a customer can see when a person is taking over.
 
 ## Code review without an API key
 
