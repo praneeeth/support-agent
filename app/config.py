@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434/v1"  # Ollama's default
     llm_model: str = "qwen3:8b"
     llm_api_key: str = ""
+    widget_brand: str = "Northwind Goods"
+    widget_greeting: str = "Hi! Ask me about orders, shipping, returns or products."
+
     max_turns_context: int = 10
     reply_max_tokens: int = 500
 
