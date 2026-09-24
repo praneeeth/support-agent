@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
 
+from app.agent.blocks import Block, order_card, product_card
 from app.agent.llm import ToolCall, ToolSchema
 from app.handoff.models import EscalationReason
 from app.orders.service import LookupOutcome, get_product, lookup_order
@@ -86,6 +87,7 @@ class ToolResult:
     grounded: bool = False  # True when it returned real data the answer may rely on
     escalate: EscalationReason | None = None
     summary: str | None = None
+    card: Block | None = None  # rendered from the DTO, never from the model's words
 
 
 def run_tool(session: Session, conversation_id: str, call: ToolCall) -> ToolResult:
@@ -103,6 +105,7 @@ def run_tool(session: Session, conversation_id: str, call: ToolCall) -> ToolResu
                 f"{product.name} (SKU {product.sku}): ₹{product.price:,.0f}, {stock}. "
                 f"{product.description}",
                 grounded=True,
+                card=product_card(product),
             )
         if call.name == "escalate":
             args_e = EscalateInput(**call.input)
@@ -141,4 +144,4 @@ def _order_status(session: Session, conversation_id: str, args: OrderLookupInput
         parts.append(f"tracking {o.tracking_number}")
     if o.eta:
         parts.append(f"estimated delivery {o.eta:%d %b %Y}")
-    return ToolResult(". ".join(parts) + ".", grounded=True)
+    return ToolResult(". ".join(parts) + ".", grounded=True, card=order_card(o))

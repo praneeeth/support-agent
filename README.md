@@ -17,7 +17,7 @@ Built with an automated pipeline: [agent-skills](https://github.com/addyosmani/a
 | `knowledge-base` — 33 policy docs, hybrid keyword + vector search | done |
 | `handoff` — tickets, conversation modes, staff UI | done |
 | `agent-core` — Claude agent, tools, escalation, HTTP API | done |
-| Web chat widget (embed script + demo page) | done |
+| Web chat widget — cards, quick replies, theming, dark mode | done |
 | Integrations: Shopify, iCal availability, WhatsApp | built, keys not set |
 | `evals` — golden test set and scoring | next |
 | `channel-webchat` / `channel-email` / `channel-whatsapp` | not started |
@@ -102,8 +102,23 @@ spec/                 module specs · tasks/  build plans · docs/adr.md  design
 <script src="https://your-host/chat/widget.js" defer></script>
 ```
 
-That's the whole installation. The widget shows sources under each answer and styles handoffs
-differently, so a customer can see when a person is taking over.
+That's the whole installation. No build step, no dependencies, no cookies.
+
+A reply arrives as a list of blocks, so the widget renders more than prose:
+
+- **Order card** — status pill, a four-step delivery timeline, items, dates, carrier and a
+  "Track package" link built from the carrier's public tracking URL
+- **Product card** — price, stock ("Only 3 left"), SKU and category
+- **Quick replies** — opening suggestions, and follow-ups after an order card
+- **Handoff banner** — visibly different, so the customer knows a person is taking over
+- Sources under each answer, timestamps, unread badge, full-screen on a phone
+
+Cards are built in `app/agent/blocks.py` from the same DTOs the orders module returns — the model
+never writes a card, so a card cannot claim something the data does not say.
+
+Appearance is configuration, not code: `WIDGET_BRAND`, `WIDGET_ACCENT`, `WIDGET_LOGO_URL`,
+`WIDGET_POSITION`, `WIDGET_THEME` (light/dark/auto) and `WIDGET_SUGGESTIONS`. Text on the accent
+colour is chosen by luminance, so a pale brand colour still reads.
 
 ## Code review without an API key
 

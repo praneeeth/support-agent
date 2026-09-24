@@ -372,3 +372,66 @@ async def test_transcript_records_customer_and_agent_turns(
         (Role.customer, "how long do returns take"),
         (Role.agent, "30 days."),
     ]
+
+
+async def test_order_lookup_produces_a_card_and_follow_ups(
+    agent: Agent, llm: ScriptedLLM, seeded_orders: Session
+) -> None:
+    """The card is built from the DTO, so it holds data the model never wrote."""
+    from app.agent.blocks import OrderCardBlock, QuickRepliesBlock
+    from app.orders.models import Order
+
+    order = seeded_orders.scalars(select(Order)).first()
+    assert order is not None
+    llm.queue(
+        LLMResponse(
+            tool_calls=(
+                ToolCall(
+                    "t1",
+                    "get_order_status",
+                    {"order_number": order.number, "email": order.customer.email},
+                ),
+            )
+        ),
+        LLMResponse(text="Here are the details."),
+    )
+    reply = await _send(agent, f"where is my order {order.number}")
+    cards = [b for b in reply.blocks if isinstance(b, OrderCardBlock)]
+    assert len(cards) == 1
+    assert cards[0].number == order.number
+    assert cards[0].status == order.status.value
+    assert [b for b in reply.blocks if isinstance(b, QuickRepliesBlock)]
+
+
+async def test_failed_lookup_produces_no_card(
+    agent: Agent, llm: ScriptedLLM, seeded_orders: Session
+) -> None:
+    from app.agent.blocks import OrderCardBlock
+    from app.orders.models import Order
+
+    order = seeded_orders.scalars(select(Order)).first()
+    assert order is not None
+    llm.queue(
+        LLMResponse(
+            tool_calls=(
+                ToolCall(
+                    "t1",
+                    "get_order_status",
+                    {"order_number": order.number, "email": "attacker@example.com"},
+                ),
+            )
+        ),
+        LLMResponse(text="I couldn't verify those details. [S1]"),
+    )
+    reply = await _send(agent, f"status of {order.number}")
+    assert not [b for b in reply.blocks if isinstance(b, OrderCardBlock)]
+
+
+async def test_clarify_offers_suggestions(agent: Agent, kb: FakeKB) -> None:
+    from app.agent.blocks import QuickRepliesBlock
+
+    kb.hits = [_hit("returns-policy.md", 0.1)]
+    reply = await _send(agent, "something unrelated entirely")
+    assert reply.kind == "clarify"
+    chips = [b for b in reply.blocks if isinstance(b, QuickRepliesBlock)]
+    assert chips and chips[0].options

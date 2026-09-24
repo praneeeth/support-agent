@@ -36,8 +36,23 @@ class Settings(BaseSettings):
     # Connectors enabled for this deployment, comma-separated (e.g. "shopify,ical_availability")
     connectors: str = ""
 
+    # Widget appearance. Every client gets these; nothing else about the widget is per-client.
     widget_brand: str = "Northwind Goods"
     widget_greeting: str = "Hi! Ask me about orders, shipping, returns or products."
+    widget_tagline: str = "Typically replies instantly"
+    widget_accent: str = "#0f766e"
+    widget_logo_url: str = ""  # a square image; falls back to the brand's first letter
+    widget_position: str = "right"  # right | left
+    widget_theme: str = "auto"  # light | dark | auto (follows the visitor's system setting)
+    # Sample credentials printed on the demo page so a prospect can see a real order card.
+    # Empty in production — the demo page then shows no credentials at all.
+    demo_order_number: str = ""
+    demo_order_email: str = ""
+
+    # Opening chips, pipe-separated so a question may contain a comma.
+    widget_suggestions: str = (
+        "Where is my order?|What is your return policy?|Do you ship internationally?"
+    )
 
     max_turns_context: int = 10
     reply_max_tokens: int = 500

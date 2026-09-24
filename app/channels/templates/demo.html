@@ -17,7 +17,9 @@
     .grid { max-width:900px; margin:0 auto; padding:0 24px 80px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; }
     .card { border:1px solid var(--line); border-radius:12px; padding:18px; }
     .card h3 { margin:0 0 6px; font-size:16px; }
-    .card p { margin:0; color:var(--muted); font-size:14px; }
+    .card p { margin:0 0 8px; color:var(--muted); font-size:14px; }
+    .card p:last-child { margin-bottom:0; }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--ink); background:#f5f5f4; padding:7px 9px; border-radius:6px; word-break:break-all; }
     .note { max-width:900px; margin:0 auto 60px; padding:16px 20px; border-left:3px solid var(--accent); background:#f5f5f4; color:var(--muted); font-size:14px; }
   </style>
 </head>
@@ -34,9 +36,10 @@
   </section>
 
   <section class="grid">
-    <div class="card"><h3>Try asking</h3><p>"How long do I have to return something?"</p></div>
-    <div class="card"><h3>Then ask</h3><p>"Do you ship to Nepal?" — it won't guess.</p></div>
-    <div class="card"><h3>Then try</h3><p>"Cancel my order NW-482913" — it refuses and fetches a human.</p></div>
+    <div class="card"><h3>Ask a policy question</h3><p>"How long do I have to return something?" — answered from the store's own documents, with the source shown.</p></div>
+    {% if sample_order %}<div class="card"><h3>Track an order</h3><p class="mono">{{ sample_order }}</p><p>Returns a live status card. Without both the number and the checkout email, nothing is revealed.</p></div>{% endif %}
+    <div class="card"><h3>Ask about a product</h3><p>"How much is the Wool Throw Blanket?" — price and live stock, as a card.</p></div>
+    <div class="card"><h3>Push its limits</h3><p>"Cancel my order" — it refuses and fetches a human. "Do you ship to Nepal?" — it won't guess.</p></div>
   </section>
 
   <p class="note">Demo page, session {{ nonce }}. Replies come from the documents loaded for this

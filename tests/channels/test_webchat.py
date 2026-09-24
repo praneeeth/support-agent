@@ -107,3 +107,46 @@ def test_rate_limit_per_session(client: TestClient, llm: ScriptedLLM) -> None:
         client.post("/chat/message", json={"session_id": "s-other123", "text": "q"}).status_code
         == 200
     )
+
+
+def test_reply_always_carries_at_least_one_block(client: TestClient, llm: ScriptedLLM) -> None:
+    llm.queue(LLMResponse(text="You have 30 days from delivery. [S1]"))
+    body = client.post("/chat/message", json={"session_id": SID, "text": "returns?"}).json()
+    blocks = body["blocks"]
+    assert blocks[0]["type"] == "text"
+    assert blocks[0]["text"] == body["text"]
+    assert blocks[0]["sources"] == body["sources"]
+
+
+def test_handoff_block_is_toned_for_the_widget(client: TestClient, llm: ScriptedLLM) -> None:
+    body = client.post(
+        "/chat/message", json={"session_id": SID, "text": "cancel my order please"}
+    ).json()
+    assert [b["tone"] for b in body["blocks"] if b["type"] == "text"] == ["handoff"]
+
+
+def test_widget_is_themed_from_settings(client: TestClient) -> None:
+    js = client.get("/chat/widget.js").text
+    assert "__CONFIG__" not in js
+    assert '"accent": "#0f766e"' in js or '"accent":"#0f766e"' in js
+    assert "Northwind Goods" in js
+
+
+def test_unknown_theme_falls_back_to_auto() -> None:
+    from app.channels.webchat import widget_config
+    from app.config import Settings
+
+    assert widget_config(Settings(widget_theme="neon"))["theme"] == "auto"
+    assert widget_config(Settings(widget_position="middle"))["position"] == "right"
+
+
+def test_suggestions_split_on_pipes_not_commas() -> None:
+    from app.channels.webchat import widget_config
+    from app.config import Settings
+
+    config = widget_config(Settings(widget_suggestions="Where is my order, really?|Returns?| "))
+    assert config["suggestions"] == ["Where is my order, really?", "Returns?"]
+
+
+def test_demo_page_hides_sample_credentials_unless_configured(client: TestClient) -> None:
+    assert "Track an order" not in client.get("/chat/demo").text

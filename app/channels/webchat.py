@@ -5,6 +5,7 @@ and renders replies. Escalations look different from answers, so the customer kn
 is coming.
 """
 
+import json
 import secrets
 import time
 from collections import defaultdict
@@ -17,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.agent.blocks import Block, TextBlock
 from app.agent.core import Agent
 from app.agent.routes import get_agent
 from app.config import Settings, get_settings
@@ -44,6 +46,7 @@ class ChatOut(BaseModel):
     text: str
     sources: list[str] = []
     handed_off: bool = False
+    blocks: list[Block] = []
 
 
 def _rate_limited(session_id: str) -> bool:
@@ -54,12 +57,26 @@ def _rate_limited(session_id: str) -> bool:
     return len(hits) > RATE_LIMIT
 
 
+def widget_config(settings: Settings) -> dict[str, object]:
+    """Everything the widget needs to look like this client's brand."""
+    theme = settings.widget_theme if settings.widget_theme in {"light", "dark", "auto"} else "auto"
+    return {
+        "brand": settings.widget_brand,
+        "tagline": settings.widget_tagline,
+        "greeting": settings.widget_greeting,
+        "accent": settings.widget_accent,
+        "logo": settings.widget_logo_url,
+        "position": "left" if settings.widget_position == "left" else "right",
+        "theme": theme,
+        "suggestions": [s.strip() for s in settings.widget_suggestions.split("|") if s.strip()],
+    }
+
+
 @router.get("/widget.js")
 def widget_js(settings: Annotated[Settings, Depends(get_settings)]) -> Response:
     """The embed script. One <script src="…/chat/widget.js" defer></script> on the client's site."""
-    body = WIDGET_JS.replace("__BRAND__", settings.widget_brand).replace(
-        "__GREETING__", settings.widget_greeting
-    )
+    config = json.dumps(widget_config(settings)).replace("<", "\\u003c")
+    body = WIDGET_JS.replace("__CONFIG__", config)
     return Response(
         body,
         media_type="application/javascript",
@@ -80,11 +97,13 @@ async def message(
         text=body.text,
         customer_handle=body.session_id,
     )
+    text = reply.text or "A member of our team will reply here shortly."
     return ChatOut(
         kind=reply.kind,
-        text=reply.text or "A member of our team will reply here shortly.",
+        text=text,
         sources=list(reply.sources),
         handed_off=reply.kind == "escalated",
+        blocks=list(reply.blocks) or [TextBlock(text=text)],
     )
 
 
@@ -95,8 +114,11 @@ def demo(
     _: Annotated[Session, Depends(get_session)],
 ) -> HTMLResponse:
     """A stand-in for the client's website, with the widget on it. This is the sales demo."""
+    sample = ""
+    if settings.demo_order_number and settings.demo_order_email:
+        sample = f"Where is order {settings.demo_order_number}? {settings.demo_order_email}"
     return templates.TemplateResponse(
         request,
         "demo.html",
-        {"brand": settings.widget_brand, "nonce": secrets.token_hex(4)},
+        {"brand": settings.widget_brand, "nonce": secrets.token_hex(4), "sample_order": sample},
     )

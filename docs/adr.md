@@ -49,3 +49,12 @@ Rationale: small properties rarely run a PMS, and PMS partnerships are slow. One
 
 ## ADR-014: WhatsApp webhooks are verified and deduplicated in the channel layer
 Decision: signature check (HMAC-SHA256) rejects unsigned requests with 401; a `seen_messages` table makes repeated provider deliveries a no-op; the webhook returns 200 immediately and answers on a background task, because Meta retries on delay.
+
+## ADR-015: A reply is a list of blocks, and cards are built in code
+Decision: `/chat/message` returns `blocks` — text the model wrote, plus cards (`order_card`, `product_card`) constructed in `app/agent/blocks.py` from the same DTOs the orders module returns, plus `quick_replies`. The model never emits a card and is never asked to format one.
+Rationale: an order lookup is structured data; flattening it into a sentence loses the tracking link and makes the customer read a paragraph. Building cards from the DTO also means a card cannot state something the data does not — the prose above it can still be wrong, the card cannot.
+Consequence: a new card type is a Pydantic model plus a renderer, not a prompt change. `text` is kept alongside `blocks` so non-visual channels (WhatsApp, email) stay unchanged.
+
+## ADR-016: Widget appearance is configuration, not a fork per client
+Decision: brand, tagline, greeting, accent colour, logo, side, light/dark/auto theme and the opening suggestion chips are settings, serialised into the embed script at request time. The widget derives readable text for the accent colour by luminance, and uses CSS custom properties so dark mode is a variable swap.
+Rationale: selling the same engine to several clients must not mean a branch per client. One deployment, one `.env`, and the widget looks like the client's site.
