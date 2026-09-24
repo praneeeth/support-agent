@@ -15,7 +15,9 @@ Built with an automated pipeline: [agent-skills](https://github.com/addyosmani/a
 |---|---|
 | `orders` — demo store data, verified order lookup, lockout | done |
 | `knowledge-base` — 33 policy docs, hybrid keyword + vector search | done |
-| `handoff` — tickets, conversation modes, staff UI | done |
+| `handoff` — tickets, conversation modes | done |
+| Agent portal — inbox with filters and search, conversation view | done |
+| Admin portal — overview, knowledge, playground, integrations | done |
 | `agent-core` — Claude agent, tools, escalation, HTTP API | done |
 | Web chat widget — cards, quick replies, theming, dark mode | done |
 | Integrations: Shopify, iCal availability, WhatsApp | built, keys not set |
@@ -60,7 +62,8 @@ replies. The safety behaviour does not depend on the model: refunds, cancellatio
 verification are enforced in code, before and after the model runs.
 
 - Demo storefront with the chat widget: http://127.0.0.1:8000/chat/demo
-- Staff queue: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
+- Agent inbox: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
+- Admin portal: http://127.0.0.1:8000/admin — overview, knowledge, playground, integration health
 - Health: http://127.0.0.1:8000/healthz
 - Ask the agent something:
 

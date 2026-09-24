@@ -58,3 +58,15 @@ Consequence: a new card type is a Pydantic model plus a renderer, not a prompt c
 ## ADR-016: Widget appearance is configuration, not a fork per client
 Decision: brand, tagline, greeting, accent colour, logo, side, light/dark/auto theme and the opening suggestion chips are settings, serialised into the embed script at request time. The widget derives readable text for the accent colour by luminance, and uses CSS custom properties so dark mode is a variable swap.
 Rationale: selling the same engine to several clients must not mean a branch per client. One deployment, one `.env`, and the widget looks like the client's site.
+
+## ADR-017: Two portals, one shell, one vocabulary
+Decision: the agent portal (`/staff`) and the admin portal (`/admin`) share a Jinja environment, a stylesheet and `app/portal/labels.py`, which translates every enum that reaches a screen — `restricted_action` becomes "Needs authorisation", with a severity that drives its colour.
+Rationale: support staff and a client's operations lead are not the audience for the database schema, and two separately-styled internal tools is how an internal tool starts to look unfinished. Keeping the wording in one module means it changes once, and a vertical can override it later without touching templates.
+
+## ADR-018: Admin analytics are computed from the operational tables
+Decision: `app/admin/analytics.py` counts conversations, handovers and reasons straight from `conversations`, `messages` and `tickets`. There is no events table and no background aggregation. A conversation counts as escalated once however many tickets it produced.
+Consequence: the overview can never disagree with the inbox, and there is nothing extra to deploy or back up. If volume ever makes these queries slow, the fix is an index or a materialised daily roll-up — not a second source of truth.
+
+## ADR-019: The admin portal never handles credentials
+Decision: the integrations screen names the environment variable an integration is waiting for and shows its health, and nothing else. No secret is displayed, entered or stored through the browser, and a test asserts a configured token never appears in the rendered page.
+Rationale: an operations screen gets screenshotted, shared and screen-shared. Naming `WHATSAPP_TOKEN` is useful; showing its value is a leak waiting to happen.

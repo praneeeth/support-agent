@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Playground{% endblock %}
+{% block content %}
+
+<div class="head">
+  <div>
+    <h1>Playground</h1>
+    <p class="muted" style="margin:0">
+      Ask what a customer would ask, and see why the assistant answered the way it did.
+    </p>
+  </div>
+</div>
+
+<form method="post" action="/admin/playground" class="panel" style="margin-bottom:16px">
+  <textarea name="text" required aria-label="Question to try"
+            placeholder="How long do I have to return something?">{{ question or "" }}</textarea>
+  <div class="actions">
+    <button type="submit">Ask</button>
+    <span class="muted" style="font-size:12.5px">
+      Runs against the live knowledge base and model. It does not appear in the inbox as a customer.
+    </span>
+  </div>
+</form>
+
+{% if error %}
+  <div class="note-box"><strong>The assistant could not run.</strong><br>{{ error }}</div>
+{% endif %}
+
+{% if reply %}
+<div class="split">
+  <div>
+    <div class="panel">
+      <h2>Reply</h2>
+      {% if reply.kind == "answer" %}
+        <span class="pill ok">Answered</span>
+      {% elif reply.kind == "clarify" %}
+        <span class="pill warn">Asked to clarify</span>
+      {% elif reply.kind == "escalated" %}
+        <span class="pill urgent">Handed over — {{ reason_label(reply.escalation_reason) }}</span>
+      {% else %}
+        <span class="pill grey">Stayed quiet</span>
+      {% endif %}
+      <p style="white-space:pre-wrap;margin:12px 0 0">{{ reply.text }}</p>
+      {% if reply.sources %}
+        <p class="muted" style="font-size:13px;margin:10px 0 0">
+          Cited: {% for s in reply.sources %}<code>{{ s }}</code>{% if not loop.last %} {% endif %}{% endfor %}
+        </p>
+      {% endif %}
+    </div>
+
+    {% if reply.blocks %}
+    <div class="panel">
+      <h2>What the customer sees</h2>
+      <dl style="margin:0">
+        {% for b in reply.blocks %}
+          <div class="kv">
+            <dt>{{ b.type.replace("_", " ")|title }}</dt>
+            <dd>
+              {% if b.type == "order_card" %}{{ b.number }} · {{ b.status_label }}
+              {% elif b.type == "product_card" %}{{ b.name }} · {{ b.price_label }}
+              {% elif b.type == "quick_replies" %}{{ b.options|join(", ") }}
+              {% else %}{{ b.text[:80] }}{% if b.text|length > 80 %}…{% endif %}{% endif %}
+            </dd>
+          </div>
+        {% endfor %}
+      </dl>
+    </div>
+    {% endif %}
+  </div>
+
+  <aside>
+    <div class="panel">
+      <h2>What it retrieved</h2>
+      <p class="muted" style="font-size:12.5px;margin:0 0 8px">
+        Anything below {{ "%.2f"|format(threshold) }} is ignored, and the assistant hands over
+        rather than guess.
+      </p>
+      {% for h in hits %}
+        <div class="hit">
+          <div class="top">
+            <span>{{ h.doc_title }}</span>
+            <span class="score pill {{ 'ok' if h.score >= threshold else 'grey' }}">{{ "%.2f"|format(h.score) }}</span>
+          </div>
+          <div class="text">{{ h.text }}</div>
+        </div>
+      {% else %}
+        <p class="muted">Nothing matched at all.</p>
+      {% endfor %}
+    </div>
+
+    <div class="panel">
+      <h2>Run</h2>
+      <dl style="margin:0">
+        <div class="kv"><dt>Outcome</dt><dd>{{ reply.kind }}</dd></div>
+        <div class="kv"><dt>Passages searched</dt><dd class="tnum">{{ hits|length }}</dd></div>
+        <div class="kv"><dt>Threshold</dt><dd class="tnum">{{ "%.2f"|format(threshold) }}</dd></div>
+        <div class="kv"><dt>Conversation</dt><dd class="mono" style="font-size:11.5px">{{ conversation_id }}</dd></div>
+      </dl>
+    </div>
+  </aside>
+</div>
+{% elif not error %}
+  <div class="panel">
+    <h2>Try one of these</h2>
+    <ul class="muted" style="margin:0;padding-left:18px">
+      <li>How long do I have to return something?</li>
+      <li>Do you ship to Nepal? — it should refuse to guess</li>
+      <li>Cancel my order — it should hand over</li>
+    </ul>
+  </div>
+{% endif %}
+{% endblock %}
