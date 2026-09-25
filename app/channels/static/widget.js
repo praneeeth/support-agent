@@ -4,13 +4,18 @@
    from tool results. This file renders those blocks. A card is never parsed out of prose, so
    what a card shows is exactly what the order or product data said.
 
-   Session id lives in sessionStorage so a refresh keeps the conversation. */
+   Session id lives in sessionStorage so a refresh keeps the conversation. After a handoff the
+   widget polls for staff replies. The visitor's light/dark choice lives in localStorage. */
 (function () {
   "use strict";
 
   var CFG = __CONFIG__;
   var base = (document.currentScript && document.currentScript.src || "").replace(/\/chat\/widget\.js.*$/, "");
   var KEY = "sa_session";
+  var THEME_KEY = "sa_theme";
+  var SEEN_KEY = "sa_seen";
+  var LIVE_KEY = "sa_live";
+  var POLL_MS = 4000;
   var sid;
   try {
     sid = sessionStorage.getItem(KEY);
@@ -40,8 +45,9 @@
   var css =
     ".sa-root{" + light + "--sa-accent:" + CFG.accent + ";--sa-on-accent:" + inkFor(CFG.accent) + ";" +
       "font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}" +
-    (CFG.theme === "dark" ? ".sa-root{" + dark + "}" : "") +
-    (CFG.theme === "auto" ? "@media (prefers-color-scheme:dark){.sa-root{" + dark + "}}" : "") +
+    // An explicit choice (the visitor's, else the client's setting) wins; otherwise follow the OS.
+    ".sa-root.sa-dark{" + dark + "}" +
+    "@media (prefers-color-scheme:dark){.sa-root:not(.sa-light){" + dark + "}}" +
 
     ".sa-btn{position:fixed;" + side + ":20px;bottom:20px;width:58px;height:58px;border-radius:50%;border:0;" +
       "background:var(--sa-accent);color:var(--sa-on-accent);cursor:pointer;display:flex;align-items:center;" +
@@ -73,6 +79,10 @@
     ".sa-title span{display:block;font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
     ".sa-x{background:transparent;border:0;color:inherit;font-size:22px;line-height:1;cursor:pointer;opacity:.85;padding:2px 4px}" +
     ".sa-x:hover{opacity:1}" +
+    ".sa-theme{background:transparent;border:0;color:inherit;cursor:pointer;opacity:.85;padding:4px;display:flex;border-radius:6px}" +
+    ".sa-theme:hover{opacity:1}" +
+    ".sa-theme svg{width:17px;height:17px}" +
+    ".sa-who{font-size:11px;font-weight:600;color:var(--sa-muted);margin:0 4px 3px}" +
 
     ".sa-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:2px}" +
     // Without this, a tall card is squeezed to nothing once the log overflows.
@@ -151,6 +161,8 @@
 
   var CHAT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.8 8.8 0 0 1-3.9-.9L3 20.5l1.6-4.8A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/></svg>';
   var SEND_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg>';
+  var SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  var MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
   var PERSON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 
   var btn = document.createElement("button");
@@ -168,6 +180,7 @@
     '<div class="sa-head">' +
       '<div class="sa-avatar">' + (CFG.logo ? '<img src="' + CFG.logo + '" alt="">' : esc(CFG.brand.charAt(0).toUpperCase())) + '</div>' +
       '<div class="sa-title"><b></b><span></span></div>' +
+      '<button class="sa-theme" type="button"></button>' +
       '<button class="sa-x" aria-label="Close chat">×</button>' +
     '</div>' +
     '<div class="sa-log" aria-live="polite"></div>' +
@@ -185,8 +198,16 @@
   var form = panel.querySelector(".sa-form");
   var input = panel.querySelector("input");
   var send = panel.querySelector('button[type="submit"]');
+  var themeBtn = panel.querySelector(".sa-theme");
   var greeted = false;
   var unread = 0;
+
+  function store(area, key, value) {
+    try { if (value === null) area.removeItem(key); else area.setItem(key, value); } catch (e) { /* private mode */ }
+  }
+  function recall(area, key) {
+    try { return area.getItem(key); } catch (e) { return null; }
+  }
 
   function esc(s) {
     return String(s === undefined || s === null ? "" : s)
@@ -204,11 +225,42 @@
     return el;
   }
 
+  /* ---------- light / dark ---------- */
+
+  var OS_DARK = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function applyTheme(choice) {
+    root.classList.toggle("sa-dark", choice === "dark");
+    root.classList.toggle("sa-light", choice === "light");
+    var isDark = choice === "dark" || (choice !== "light" && !!(OS_DARK && OS_DARK.matches));
+    themeBtn.innerHTML = isDark ? SUN_ICON : MOON_ICON;
+    themeBtn.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+    themeBtn.title = themeBtn.getAttribute("aria-label");
+    return isDark;
+  }
+
+  var theme = recall(localStorage, THEME_KEY) || CFG.theme;
+  var showingDark = applyTheme(theme);
+  themeBtn.addEventListener("click", function () {
+    theme = showingDark ? "light" : "dark";
+    store(localStorage, THEME_KEY, theme);
+    showingDark = applyTheme(theme);
+  });
+  if (OS_DARK && OS_DARK.addEventListener) {
+    OS_DARK.addEventListener("change", function () { showingDark = applyTheme(theme); });
+  }
+
   /* ---------- rendering ---------- */
 
   function textRow(text, who, sources) {
     var row = document.createElement("div");
     row.className = "sa-row " + (who === "me" ? "me sa-me" : who === "note" ? "sa-note" : "sa-bot");
+    if (who === "staff") {
+      var label = document.createElement("div");
+      label.className = "sa-who";
+      label.textContent = CFG.brand + " team";
+      row.appendChild(label);
+    }
     var msg = document.createElement("div");
     msg.className = "sa-msg";
     msg.textContent = text;
@@ -346,6 +398,47 @@
     if (ev.key === "Escape" && panel.classList.contains("open")) toggle(false);
   });
 
+  /* ---------- staff replies ---------- */
+
+  // A person replies from the inbox at any time, so once a chat is handed over the widget asks for
+  // anything new. It stops when the ticket is closed and the assistant has the chat back.
+  var seen = parseInt(recall(sessionStorage, SEEN_KEY) || "0", 10) || 0;
+  var timer = null;
+
+  function notify() {
+    if (!panel.classList.contains("open")) { unread += 1; badge.textContent = unread; badge.classList.add("on"); }
+  }
+
+  function poll() {
+    if (document.hidden) return;
+    fetch(base + "/chat/messages?session_id=" + encodeURIComponent(sid) + "&after=" + seen)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        (data.messages || []).forEach(function (m) {
+          if (m.id <= seen) return;
+          seen = m.id;
+          textRow(m.text, "staff");
+          notify();
+        });
+        store(sessionStorage, SEEN_KEY, String(seen));
+        if (data.mode === "bot") stopPolling();
+      })
+      .catch(function () { /* next tick retries */ });
+  }
+
+  function startPolling() {
+    store(sessionStorage, LIVE_KEY, "1");
+    if (!timer) timer = setInterval(poll, POLL_MS);
+  }
+
+  function stopPolling() {
+    store(sessionStorage, LIVE_KEY, null);
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  if (recall(sessionStorage, LIVE_KEY)) startPolling();
+
   function ask(text) {
     textRow(text, "me");
     send.disabled = true;
@@ -364,8 +457,12 @@
       })
       .then(function (data) {
         waiting.remove();
+        // "silent" means a person owns the chat. Once they've spoken, the holding note is noise.
+        var human = data.handed_off || data.kind === "silent";
+        if (human) startPolling();
+        if (data.kind === "silent" && seen > 0) return;
         reveal(render(data.blocks, data.text, data.handed_off));
-        if (!panel.classList.contains("open")) { unread += 1; badge.textContent = unread; badge.classList.add("on"); }
+        notify();
       })
       .catch(function (err) {
         waiting.remove();

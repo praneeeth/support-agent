@@ -13,16 +13,16 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.channels.outbound import ChannelUnavailable, build_router
 from app.config import get_settings
 from app.db import get_session
 from app.handoff.models import Channel, Conversation, EscalationReason, Ticket, TicketStatus
-from app.handoff.sender import OutboundSender, RecordingSender
+from app.handoff.sender import OutboundSender
 from app.handoff.service import TicketClosed, close_ticket, staff_reply
 from app.portal import labels
 from app.portal.templates_env import templates
 
 _basic = HTTPBasic()
-_default_sender = RecordingSender()
 
 # Offered above the reply box. Wording a support agent would actually send.
 SNIPPETS = [
@@ -62,8 +62,8 @@ def require_htmx(request: Request) -> None:
 
 
 def get_sender() -> OutboundSender:
-    """Replaced by the channel router once channel modules exist."""
-    return _default_sender
+    """Deliver on the conversation's own channel."""
+    return build_router(get_settings())
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
@@ -186,6 +186,10 @@ def reply(
         staff_reply(session, ticket.id, text, sender)
     except TicketClosed as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, "Ticket is closed") from exc
+    except ChannelUnavailable as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Replies on this channel aren't connected yet"
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     return templates.TemplateResponse(request, "_transcript.html", {"ticket": ticket})

@@ -12,7 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -24,6 +24,7 @@ from app.agent.routes import get_agent
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.handoff.models import Channel
+from app.handoff.service import conversation_mode, staff_messages_after
 
 router = APIRouter(prefix="/chat")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -47,6 +48,16 @@ class ChatOut(BaseModel):
     sources: list[str] = []
     handed_off: bool = False
     blocks: list[Block] = []
+
+
+class StaffMessage(BaseModel):
+    id: int
+    text: str
+
+
+class InboxOut(BaseModel):
+    mode: str
+    messages: list[StaffMessage] = []
 
 
 def _rate_limited(session_id: str) -> bool:
@@ -104,6 +115,26 @@ async def message(
         sources=list(reply.sources),
         handed_off=reply.kind == "escalated",
         blocks=list(reply.blocks) or [TextBlock(text=text)],
+    )
+
+
+@router.get("/messages", response_model=InboxOut)
+def messages(
+    session: Annotated[Session, Depends(get_session)],
+    session_id: Annotated[str, Query(min_length=8, max_length=64)],
+    after: Annotated[int, Query(ge=0)] = 0,
+) -> InboxOut:
+    """Staff replies for this visitor, newer than `after`. The widget polls this after a handoff.
+
+    The session id is the visitor's only credential, the same one `/chat/message` trusts.
+    """
+    conversation_id = f"web-{session_id}"
+    return InboxOut(
+        mode=conversation_mode(session, conversation_id).value,
+        messages=[
+            StaffMessage(id=m.id, text=m.text)
+            for m in staff_messages_after(session, conversation_id, after)
+        ],
     )
 
 

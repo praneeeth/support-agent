@@ -170,3 +170,29 @@ def test_unknown_filter_values_are_ignored_not_fatal(client: TestClient, session
     )
     assert resp.status_code == 200
     assert "Needs authorisation" in resp.text
+
+
+def test_default_sender_routes_by_channel() -> None:
+    from app.channels.outbound import ChannelRouter
+
+    assert isinstance(get_sender(), ChannelRouter)
+
+
+def test_reply_on_an_unconnected_channel_is_refused(session: Session) -> None:
+    """With the real router, an email reply can't go anywhere yet; say so instead of pretending."""
+    app = create_app()
+
+    def _session() -> Iterator[Session]:
+        yield session
+
+    app.dependency_overrides[get_session] = _session
+    tid = _ticket(session)
+    with TestClient(app) as c:
+        resp = c.post(f"/staff/tickets/{tid}/reply", auth=AUTH, headers=HX, data={"text": "hi"})
+    assert resp.status_code == 503
+    assert conversation_mode(session, "c1") is Mode.waiting_human
+
+
+def test_portal_has_a_theme_switch(client: TestClient) -> None:
+    html = client.get("/staff", auth=AUTH).text
+    assert 'data-theme-set="dark"' in html and 'data-theme-set="light"' in html

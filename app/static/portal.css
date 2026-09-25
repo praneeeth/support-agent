@@ -21,10 +21,26 @@
   --series-handled: #5aa79d;
   --series-escalated: #0b5f58;
   --radius: 10px;
+  color-scheme: light;
+}
+
+/* Dark palette. An explicit choice from the theme switch (data-theme on <html>) wins;
+   with no choice, follow the operating system. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --accent: #2dd4bf; --accent-soft: #113b37; --on-accent: #06211d;
+  --page: #17181a; --surface: #202225; --sunk: #2a2d31;
+  --ink: #f1f0ee; --ink-soft: #a3a09b; --line: #34373c; --line-strong: #474b52;
+  --info: #9dbafb;   --info-bg: #1b2740;
+  --warn: #f0c07a;   --warn-bg: #3a2c14;
+  --urgent: #f5a9a2; --urgent-bg: #3d1e1c;
+  --ok: #86dfc2;     --ok-bg: #123329;
+  --series-handled: #7fd7c8;
+  --series-escalated: #1f8b7d;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --accent: #2dd4bf; --accent-soft: #113b37; --on-accent: #06211d;
     --page: #17181a; --surface: #202225; --sunk: #2a2d31;
@@ -69,6 +85,22 @@ h2 { font-size: 15px; margin: 0 0 10px; }
 }
 .tabs a:hover { color: var(--ink); }
 .tabs a.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* ---------- theme switch ---------- */
+
+.theme-switch {
+  display: inline-flex; padding: 2px; gap: 2px; flex: 0 0 auto;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--sunk);
+}
+.theme-switch button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 26px; padding: 0; border: 0; border-radius: 999px;
+  background: transparent; color: var(--ink-soft); cursor: pointer;
+}
+.theme-switch button:hover { color: var(--ink); }
+.theme-switch button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.theme-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.theme-switch svg { width: 15px; height: 15px; }
 
 main { max-width: 1120px; margin: 0 auto; padding: 22px 20px 60px; }
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }

@@ -96,6 +96,23 @@ def record_message(session: Session, conversation_id: str, role: Role, text: str
     return open_ticket(session, conversation_id) if conv.mode is not Mode.bot else None
 
 
+def staff_messages_after(
+    session: Session, conversation_id: str, after_id: int = 0
+) -> list[Message]:
+    """Staff replies the customer hasn't been shown yet. Pull-based channels poll this."""
+    return list(
+        session.scalars(
+            select(Message)
+            .where(
+                Message.conversation_id == conversation_id,
+                Message.role == Role.staff,
+                Message.id > after_id,
+            )
+            .order_by(Message.id)
+        )
+    )
+
+
 def _get_ticket(session: Session, ticket_id: int) -> Ticket:
     ticket = session.get(Ticket, ticket_id)
     if ticket is None:

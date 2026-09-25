@@ -150,3 +150,51 @@ def test_suggestions_split_on_pipes_not_commas() -> None:
 
 def test_demo_page_hides_sample_credentials_unless_configured(client: TestClient) -> None:
     assert "Track an order" not in client.get("/chat/demo").text
+
+
+def _escalate_and_reply(client: TestClient, session: Session, *texts: str) -> None:
+    from app.channels.outbound import WebchatOutbox
+    from app.handoff.service import open_ticket, staff_reply
+
+    client.post("/chat/message", json={"session_id": SID, "text": "cancel my order please"})
+    ticket = open_ticket(session, f"web-{SID}")
+    assert ticket is not None
+    for text in texts:
+        staff_reply(session, ticket.id, text, WebchatOutbox())
+
+
+def test_staff_reply_reaches_the_widget(client: TestClient, session: Session) -> None:
+    _escalate_and_reply(client, session, "Hi, I'm Priya from the team.")
+    body = client.get("/chat/messages", params={"session_id": SID}).json()
+    assert body["mode"] == "human"
+    assert [m["text"] for m in body["messages"]] == ["Hi, I'm Priya from the team."]
+
+
+def test_widget_only_gets_messages_it_has_not_seen(client: TestClient, session: Session) -> None:
+    _escalate_and_reply(client, session, "one", "two")
+    first = client.get("/chat/messages", params={"session_id": SID}).json()["messages"]
+    after = first[0]["id"]
+    rest = client.get("/chat/messages", params={"session_id": SID, "after": after}).json()
+    assert [m["text"] for m in rest["messages"]] == ["two"]
+
+
+def test_staff_replies_are_private_to_their_session(client: TestClient, session: Session) -> None:
+    _escalate_and_reply(client, session, "Your refund is approved.")
+    other = client.get("/chat/messages", params={"session_id": "s-other123"}).json()
+    assert other == {"mode": "bot", "messages": []}
+
+
+def test_poll_returns_only_staff_messages(client: TestClient, session: Session) -> None:
+    _escalate_and_reply(client, session)
+    body = client.get("/chat/messages", params={"session_id": SID}).json()
+    assert body == {"mode": "waiting_human", "messages": []}
+
+
+def test_poll_validates_session_id(client: TestClient) -> None:
+    assert client.get("/chat/messages", params={"session_id": "short"}).status_code == 422
+
+
+def test_widget_polls_and_has_a_theme_switch(client: TestClient) -> None:
+    js = client.get("/chat/widget.js").text
+    assert "/chat/messages" in js
+    assert "sa-theme" in js
