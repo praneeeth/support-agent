@@ -1,0 +1,20 @@
+# Northwind Goods — the launch vertical, and the regression test for the whole extraction.
+# Copy this folder, change the profile and the documents, and you have a new customer.
+id: northwind
+
+business:
+  name: Northwind Goods
+  kind: an online home-goods store
+  location: Pune, India
+  currency_symbol: "₹"
+  hours: "Mon–Sat, 9am–7pm IST"
+  reference_name: order number
+  reference_format: NW-123456
+
+# Documents the assistant may answer from, relative to this folder.
+docs_dir: docs
+
+# Tools this business switches on. `escalate` is always available and cannot be turned off.
+tools:
+  - get_order_status
+  - get_product

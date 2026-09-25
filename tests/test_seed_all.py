@@ -48,13 +48,13 @@ def test_price_change_reingests_only_that_product(session: Session) -> None:
 def test_doc_ingest_does_not_delete_catalog(session: Session) -> None:
     seed_store(session)
     ingest_catalog(session)
-    ingest_docs(session, "data/docs")
+    ingest_docs(session, "verticals/northwind/docs")
     assert _catalog_count(session) == 50
 
 
 def test_product_name_query_returns_product_first(session: Session) -> None:
     seed_store(session)
-    ingest_docs(session, "data/docs", embedder=HashingEmbedder())
+    ingest_docs(session, "verticals/northwind/docs", embedder=HashingEmbedder())
     ingest_catalog(session, embedder=HashingEmbedder())
     kb = KnowledgeBase.load(session, HashingEmbedder())
     product = session.scalar(select(Product).where(Product.sku == "NW-SKU-0033"))

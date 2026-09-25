@@ -12,6 +12,7 @@ from app.handoff.models import Channel, EscalationReason
 from app.knowledge_base.embed import HashingEmbedder
 from app.knowledge_base.ingest import ingest_docs
 from app.knowledge_base.search import KnowledgeBase
+from app.verticals.config import docs_dir
 
 pytestmark = pytest.mark.live
 
@@ -21,7 +22,7 @@ def agent(session: Session) -> Agent:
     settings = get_settings()
     if os.getenv("LIVE_LLM") != "1":
         pytest.skip("set LIVE_LLM=1 to run against the configured provider")
-    ingest_docs(session, settings.docs_dir, embedder=HashingEmbedder())
+    ingest_docs(session, docs_dir(), embedder=HashingEmbedder())
     kb = KnowledgeBase.load(session, HashingEmbedder())
     llm = build_llm(settings)  # Ollama, Groq, Anthropic — whatever .env points at
     return Agent(session=session, kb=kb, llm=llm, settings=settings)

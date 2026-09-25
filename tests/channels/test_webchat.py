@@ -30,7 +30,7 @@ def _clear_rate_limit() -> Iterator[None]:
 
 @pytest.fixture
 def client(session: Session, llm: ScriptedLLM) -> Iterator[TestClient]:
-    ingest_docs(session, "data/docs")
+    ingest_docs(session, "verticals/northwind/docs")
     app = create_app()
 
     def _session() -> Iterator[Session]:

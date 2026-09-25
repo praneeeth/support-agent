@@ -24,6 +24,7 @@ from app.integrations.base import Status, registry
 from app.knowledge_base.ingest import ingest_docs
 from app.knowledge_base.models import KbChunk, KbDocument
 from app.portal.templates_env import templates
+from app.verticals.config import docs_dir
 
 SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
@@ -177,7 +178,7 @@ def document(request: Request, document_id: int, session: SessionDep) -> HTMLRes
 @router.post("/knowledge/reindex", dependencies=[Depends(require_htmx)])
 def reindex(session: SessionDep, settings: SettingsDep) -> HTMLResponse:
     """Re-read the documents folder. Safe to run while the app is serving."""
-    stats = ingest_docs(session, settings.docs_dir)
+    stats = ingest_docs(session, docs_dir())
     return HTMLResponse(
         f"Re-indexed {stats.documents_written} documents ({stats.chunks_written} passages).",
         headers={"HX-Trigger": "reindexed"},

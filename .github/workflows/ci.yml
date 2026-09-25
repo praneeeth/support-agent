@@ -53,7 +53,7 @@ jobs:
             agent:
               - 'app/agent/**'
               - 'app/knowledge_base/**'
-              - 'data/docs/**'
+              - 'verticals/**'
               - 'evals/**'
       - if: steps.changes.outputs.agent == 'true' && hashFiles('evals/run.py') != ''
         uses: astral-sh/setup-uv@v6

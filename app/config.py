@@ -7,7 +7,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "sqlite:///./support.db"
-    docs_dir: str = "data/docs"
+    # Which business this deployment serves: the folder under verticals/.
+    vertical: str = "northwind"
+    # Overrides the vertical's own docs folder; empty means use it.
+    docs_dir: str = ""
     seed: int = 42
 
     kb_min_score: float = 0.35  # semantic similarity, used when vectors are available

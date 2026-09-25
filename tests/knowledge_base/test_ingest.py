@@ -7,7 +7,7 @@ from app.knowledge_base.ingest import chunk_markdown, ingest_docs, parse_doc
 from app.knowledge_base.models import KbChunk, KbDocument
 from app.knowledge_base.search import KnowledgeBase
 
-DOCS = Path("data/docs")
+DOCS = Path("verticals/northwind/docs")
 
 SAMPLE = """---
 title: Returns policy
