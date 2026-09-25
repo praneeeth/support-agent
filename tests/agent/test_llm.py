@@ -4,7 +4,10 @@ import httpx2 as httpx
 import pytest
 
 from app.agent.llm import AnthropicLLM, LLMError, LLMResponse, ScriptedLLM, ToolCall
-from app.agent.prompts import SYSTEM_PROMPT, format_sources
+from app.agent.prompts import format_sources, system_prompt
+from app.verticals.config import load_vertical
+
+SYSTEM_PROMPT = system_prompt(load_vertical("northwind").business)
 
 TOOLS = [{"name": "escalate", "description": "x", "input_schema": {"type": "object"}}]
 

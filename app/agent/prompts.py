@@ -1,11 +1,20 @@
-"""Prompts and the customer-facing canned messages."""
+"""Prompts and the customer-facing canned messages, built from the vertical's business profile.
+
+The *structure* stays here in code — the citation rule, the refusal list, the order-verification
+rule — because that structure is what makes an answer checkable. A vertical supplies the facts
+that go in the gaps: who the business is, what a reference looks like, when a person is around.
+A config can change the wording; it cannot remove a rule.
+"""
 
 from app.handoff.models import EscalationReason
+from app.verticals.config import Business
 
-STORE_NAME = "Northwind Goods"
 
-SYSTEM_PROMPT = f"""You are the support assistant for {STORE_NAME}, an online home-goods store \
-based in Pune, India. You help customers over chat, email and WhatsApp.
+def system_prompt(business: Business) -> str:
+    reference = business.reference_name
+    fmt = f" (format {business.reference_format})" if business.reference_format else ""
+    return f"""You are the support assistant for {business.described}. \
+You help customers over chat, email and WhatsApp.
 
 How to answer:
 - Answer ONLY from the numbered sources given in the user turn, or from a tool result.
@@ -14,13 +23,13 @@ How to answer:
 instead of guessing.
 - Be brief and concrete: 1-4 short sentences, no filler. No greetings unless the customer greets \
 you first.
-- Use the customer's wording for products. Prices are in rupees (₹).
+- Use the customer's wording for products. Prices are in {business.currency_symbol}.
 
-Order status:
-- To look up an order you need BOTH the order number (format NW-123456) and the email used at \
-checkout. Ask for whatever is missing.
+Looking something up:
+- To look up a customer's record you need BOTH the {reference}{fmt} and the email address on it. \
+Ask for whatever is missing.
 - If the lookup does not match, say you could not verify those details and ask them to check \
-both — never say whether an order number exists.
+both — never say whether a {reference} exists.
 
 Things you must never do:
 - Never promise, process or imply a refund, cancellation, return pickup, exchange or price \
@@ -31,41 +40,51 @@ adjustment. Those need a human: call `escalate` with reason "restricted_action".
 
 When you are unsure, escalate. A wrong answer costs far more than a handoff."""
 
+
+def handoff_text(business: Business) -> dict[EscalationReason, str]:
+    """What the customer reads when a person takes over."""
+    when = f" ({business.hours})" if business.hours else ""
+    return {
+        EscalationReason.customer_requested: (
+            "Of course — I'm passing you to a member of our support team. "
+            f"They'll reply here during business hours{when}."
+        ),
+        EscalationReason.restricted_action: (
+            "That's something our support team handles directly. I've passed on your request "
+            f"with the details, and someone will follow up here{when}."
+        ),
+        EscalationReason.negative_sentiment: (
+            "I'm sorry this has been frustrating. I've asked a member of our team to take over, "
+            f"and they'll reply here{when}."
+        ),
+        EscalationReason.repeated_failure: (
+            "I still don't have a reliable answer for you, so I've passed this to our support "
+            f"team. They'll reply here{when}."
+        ),
+        EscalationReason.low_confidence: (
+            "I'd rather not guess on this one. I've passed it to our support team, "
+            f"and they'll reply here{when}."
+        ),
+        EscalationReason.lookup_locked: (
+            f"For security I can't keep trying {business.reference_name} details in this chat. "
+            "I've passed this to our support team, who can verify your record another way"
+            f"{when}."
+        ),
+    }
+
+
 SENTIMENT_PROMPT = """Classify the customer's message for frustration or anger.
 Reply with exactly one word: NEGATIVE if the customer is angry, frustrated, insulting, \
 threatening to leave or escalate, or repeating a complaint; otherwise NEUTRAL."""
 
-CLARIFY_TEXT = (
-    "Sorry, I don't have a confident answer to that. Could you give me a bit more detail "
-    "(for example the product, your order number, or what you'd like to do)?"
-)
 
-HANDOFF_TEXT: dict[EscalationReason, str] = {
-    EscalationReason.customer_requested: (
-        "Of course — I'm passing you to a member of our support team. "
-        "They'll reply here during business hours (Mon–Sat, 9am–7pm IST)."
-    ),
-    EscalationReason.restricted_action: (
-        "That's something our support team handles directly. I've passed on your request with the "
-        "details, and someone will follow up here (Mon–Sat, 9am–7pm IST)."
-    ),
-    EscalationReason.negative_sentiment: (
-        "I'm sorry this has been frustrating. I've asked a member of our team to take over, "
-        "and they'll reply here (Mon–Sat, 9am–7pm IST)."
-    ),
-    EscalationReason.repeated_failure: (
-        "I still don't have a reliable answer for you, so I've passed this to our support team. "
-        "They'll reply here (Mon–Sat, 9am–7pm IST)."
-    ),
-    EscalationReason.low_confidence: (
-        "I'd rather not guess on this one. I've passed it to our support team, "
-        "and they'll reply here (Mon–Sat, 9am–7pm IST)."
-    ),
-    EscalationReason.lookup_locked: (
-        "For security I can't keep trying order details in this chat. I've passed this to our "
-        "support team, who can verify your order another way (Mon–Sat, 9am–7pm IST)."
-    ),
-}
+def clarify_text(business: Business) -> str:
+    """Asked once on a low-confidence turn; a second miss hands over."""
+    return (
+        "Sorry, I don't have a confident answer to that. Could you give me a bit more detail "
+        f"(for example the product, your {business.reference_name}, or what you'd like to do)?"
+    )
+
 
 ERROR_TEXT = (
     "Sorry — something went wrong on my side. I've passed this to our support team so you're "

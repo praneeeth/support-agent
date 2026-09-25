@@ -28,7 +28,7 @@ for the whole extraction.
 
 ### Phase 5: extraction
 - [x] Task 18: `VerticalConfig` loader + `verticals/northwind/` (config + docs moved from `data/docs`)
-- [ ] Task 19: Prompts and escalation copy built from the business profile
+- [x] Task 19: Prompts and escalation copy built from the business profile
 - [ ] Task 20: Tool registry; `get_order_status` / `get_product` registered and enabled by config
 - [ ] Task 21: Guardrail patterns from config, with the refuse-outright category
 - [ ] Task 22: Seed, ingest and evals take `--vertical`; KB and eval paths come from config

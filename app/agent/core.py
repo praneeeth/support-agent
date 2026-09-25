@@ -17,12 +17,12 @@ from app.agent.blocks import (
 )
 from app.agent.llm import LLMClient, LLMError, Message
 from app.agent.prompts import (
-    CLARIFY_TEXT,
     ERROR_TEXT,
-    HANDOFF_TEXT,
     SENTIMENT_PROMPT,
-    SYSTEM_PROMPT,
+    clarify_text,
     format_sources,
+    handoff_text,
+    system_prompt,
 )
 from app.agent.tools import TOOLS, run_tool
 from app.config import Settings, get_settings
@@ -34,6 +34,7 @@ from app.handoff.service import (
     record_message,
 )
 from app.knowledge_base.search import Hit, Searcher
+from app.verticals.config import VerticalConfig, get_vertical
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +59,11 @@ class Agent:
     kb: Searcher
     llm: LLMClient
     settings: Settings = field(default_factory=get_settings)
+    vertical: VerticalConfig = field(default_factory=get_vertical)
+
+    @property
+    def clarify(self) -> str:
+        return clarify_text(self.vertical.business)
 
     async def handle_message(
         self,
@@ -113,7 +119,7 @@ class Agent:
         for _ in range(MAX_TOOL_ROUNDS):
             try:
                 response = await self.llm.complete(
-                    system=SYSTEM_PROMPT,
+                    system=system_prompt(self.vertical.business),
                     messages=messages,
                     tools=TOOLS,
                     max_tokens=self.settings.reply_max_tokens,
@@ -247,7 +253,7 @@ class Agent:
         """Low-confidence: clarify once, escalate on the second consecutive miss."""
         conv = get_or_create_conversation(self.session, conversation_id, Channel.webchat, "")
         agent_turns = [m for m in conv.messages if m.role is Role.agent]
-        if agent_turns and agent_turns[-1].text == CLARIFY_TEXT:
+        if agent_turns and agent_turns[-1].text == self.clarify:
             return self._escalate(
                 conversation_id,
                 channel,
@@ -255,12 +261,12 @@ class Agent:
                 f"Two questions in a row the assistant could not answer. "
                 f"Last: {policy.summarise(customer_text, 150)}",
             )
-        record_message(self.session, conversation_id, Role.agent, CLARIFY_TEXT)
+        record_message(self.session, conversation_id, Role.agent, self.clarify)
         return AgentReply(
             "clarify",
-            CLARIFY_TEXT,
+            self.clarify,
             blocks=(
-                TextBlock(text=CLARIFY_TEXT, tone="notice"),
+                TextBlock(text=self.clarify, tone="notice"),
                 QuickRepliesBlock(options=self._suggestions()),
             ),
         )
@@ -275,7 +281,7 @@ class Agent:
         cards: list[Block] | None = None,
     ) -> AgentReply:
         create_ticket(self.session, conversation_id, reason, summary, channel)
-        message = text or HANDOFF_TEXT[reason]
+        message = text or handoff_text(self.vertical.business)[reason]
         record_message(self.session, conversation_id, Role.agent, message)
         blocks: list[Block] = [*(cards or []), TextBlock(text=message, tone="handoff")]
         return AgentReply("escalated", message, escalation_reason=reason, blocks=tuple(blocks))
