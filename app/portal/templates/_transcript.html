@@ -1,0 +1,8 @@
+{% for m in ticket.conversation.messages %}
+  <div class="turn {{ m.role.value }}">
+    <span class="who">{{ ROLES.get(m.role.value, m.role.value) }} · {{ m.created_at.strftime("%d %b, %H:%M") }}</span>
+    <div class="bubble">{{ m.text }}</div>
+  </div>
+{% else %}
+  <p class="muted">No messages yet.</p>
+{% endfor %}

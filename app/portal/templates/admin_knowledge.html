@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Knowledge{% endblock %}
+{% block content %}
+
+<div class="head">
+  <div>
+    <h1>Knowledge</h1>
+    <p class="muted" style="margin:0">
+      The documents the assistant answers from. It will not answer from anything else.
+    </p>
+  </div>
+  <div style="display:flex;gap:9px;align-items:center">
+    <span id="reindex-result" class="muted" style="font-size:13px"></span>
+    <button hx-post="/admin/knowledge/reindex" hx-target="#reindex-result" hx-swap="innerHTML">Re-index</button>
+  </div>
+</div>
+
+<div class="tiles">
+  <div class="tile">
+    <div class="label">Documents</div>
+    <div class="value tnum">{{ documents|length }}</div>
+  </div>
+  <div class="tile">
+    <div class="label">Passages</div>
+    <div class="value tnum">{{ total_chunks }}</div>
+    <div class="note">what search actually matches against</div>
+  </div>
+  <div class="tile">
+    <div class="label">With meaning-based search</div>
+    <div class="value tnum">{{ embedded }}</div>
+    <div class="note">
+      {% if embedded == 0 %}keyword search only — the embedding model isn't loaded
+      {% elif embedded < total_chunks %}{{ total_chunks - embedded }} still to process
+      {% else %}all passages ready{% endif %}
+    </div>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/admin/knowledge">
+  <input type="search" name="q" value="{{ q }}" placeholder="Find a document…">
+  <button type="submit">Search</button>
+  {% if q %}<a href="/admin/knowledge" class="muted" style="font-size:13px">Clear</a>{% endif %}
+</form>
+
+<div class="scroll">
+  <table>
+    <thead><tr><th>Document</th><th>Category</th><th>Passages</th><th>File</th></tr></thead>
+    <tbody>
+      {% for d in documents %}
+        <tr>
+          <td><a href="/admin/knowledge/{{ d.id }}">{{ d.title }}</a></td>
+          <td class="muted">{{ d.category }}</td>
+          <td class="tnum">{{ d.chunks|length }}</td>
+          <td><code>{{ d.source_path }}</code></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted" style="padding:28px;text-align:center">
+          {% if q %}No document matches “{{ q }}”.{% else %}No documents ingested yet.{% endif %}
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

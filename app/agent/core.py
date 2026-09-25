@@ -8,6 +8,13 @@ from typing import Literal
 from sqlalchemy.orm import Session
 
 from app.agent import policy
+from app.agent.blocks import (
+    ORDER_FOLLOW_UPS,
+    Block,
+    OrderCardBlock,
+    QuickRepliesBlock,
+    TextBlock,
+)
 from app.agent.llm import LLMClient, LLMError, Message
 from app.agent.prompts import (
     CLARIFY_TEXT,
@@ -42,6 +49,7 @@ class AgentReply:
     text: str = ""
     sources: tuple[str, ...] = ()
     escalation_reason: EscalationReason | None = None
+    blocks: tuple[Block, ...] = ()
 
 
 @dataclass
@@ -101,6 +109,7 @@ class Agent:
 
         # 5. Tool-use loop.
         used_grounded_tool = False
+        cards: list[Block] = []
         for _ in range(MAX_TOOL_ROUNDS):
             try:
                 response = await self.llm.complete(
@@ -121,7 +130,14 @@ class Agent:
 
             if not response.wants_tools:
                 return self._finish(
-                    conversation_id, channel, text, response.text, hits, markers, used_grounded_tool
+                    conversation_id,
+                    channel,
+                    text,
+                    response.text,
+                    hits,
+                    markers,
+                    used_grounded_tool,
+                    cards,
                 )
 
             messages.append({"role": "assistant", "content": response.assistant_content()})
@@ -134,8 +150,11 @@ class Agent:
                         channel,
                         result.escalate,
                         result.summary or policy.summarise(text),
+                        cards=cards,
                     )
                 used_grounded_tool = used_grounded_tool or result.grounded
+                if result.card is not None:
+                    cards.append(result.card)
                 results.append(
                     {
                         "type": "tool_result",
@@ -210,6 +229,7 @@ class Agent:
         hits: list[Hit],
         markers: list[str],
         used_grounded_tool: bool,
+        cards: list[Block] | None = None,
     ) -> AgentReply:
         cited = {f"S{n}" for n in CITATION.findall(answer)} & set(markers)
         if not answer or (not cited and not used_grounded_tool):
@@ -217,7 +237,11 @@ class Agent:
         clean = CITATION.sub("", answer).replace("  ", " ").strip()
         record_message(self.session, conversation_id, Role.agent, clean)
         sources = tuple(dict.fromkeys(hits[markers.index(m)].source_path for m in sorted(cited)))
-        return AgentReply("answer", clean, sources)
+        cards = cards or []
+        blocks: list[Block] = [TextBlock(text=clean, sources=list(sources)), *cards]
+        if any(isinstance(c, OrderCardBlock) for c in cards):
+            blocks.append(QuickRepliesBlock(options=list(ORDER_FOLLOW_UPS)))
+        return AgentReply("answer", clean, sources, blocks=tuple(blocks))
 
     def _miss(self, conversation_id: str, channel: Channel, customer_text: str) -> AgentReply:
         """Low-confidence: clarify once, escalate on the second consecutive miss."""
@@ -232,7 +256,14 @@ class Agent:
                 f"Last: {policy.summarise(customer_text, 150)}",
             )
         record_message(self.session, conversation_id, Role.agent, CLARIFY_TEXT)
-        return AgentReply("clarify", CLARIFY_TEXT)
+        return AgentReply(
+            "clarify",
+            CLARIFY_TEXT,
+            blocks=(
+                TextBlock(text=CLARIFY_TEXT, tone="notice"),
+                QuickRepliesBlock(options=self._suggestions()),
+            ),
+        )
 
     def _escalate(
         self,
@@ -241,8 +272,14 @@ class Agent:
         reason: EscalationReason,
         summary: str,
         text: str | None = None,
+        cards: list[Block] | None = None,
     ) -> AgentReply:
         create_ticket(self.session, conversation_id, reason, summary, channel)
         message = text or HANDOFF_TEXT[reason]
         record_message(self.session, conversation_id, Role.agent, message)
-        return AgentReply("escalated", message, escalation_reason=reason)
+        blocks: list[Block] = [*(cards or []), TextBlock(text=message, tone="handoff")]
+        return AgentReply("escalated", message, escalation_reason=reason, blocks=tuple(blocks))
+
+    def _suggestions(self) -> list[str]:
+        raw = [s.strip() for s in self.settings.widget_suggestions.split("|")]
+        return [s for s in raw if s]

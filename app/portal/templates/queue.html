@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Inbox{% endblock %}
+{% block content %}
+
+<div class="head">
+  <div>
+    <h1>Inbox</h1>
+    <p class="muted" style="margin:0">
+      {% if status == "open" %}Conversations the assistant handed over.
+      {% elif status == "closed" %}Tickets you have already dealt with.
+      {% else %}Every ticket, open and closed.{% endif %}
+    </p>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/staff">
+  <div class="seg">
+    <a href="/staff?status=open{{ keep }}" class="{{ 'on' if status == 'open' }}">Open {{ counts.open }}</a>
+    <a href="/staff?status=closed{{ keep }}" class="{{ 'on' if status == 'closed' }}">Closed {{ counts.closed }}</a>
+    <a href="/staff?status=all{{ keep }}" class="{{ 'on' if status == 'all' }}">All {{ counts.all }}</a>
+  </div>
+  <input type="hidden" name="status" value="{{ status }}">
+  <select name="reason" onchange="this.form.submit()" aria-label="Filter by reason">
+    <option value="">Any reason</option>
+    {% for value, label in reason_options %}
+      <option value="{{ value }}" {{ 'selected' if reason == value }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="channel" onchange="this.form.submit()" aria-label="Filter by channel">
+    <option value="">Any channel</option>
+    {% for value, label in channel_options %}
+      <option value="{{ value }}" {{ 'selected' if channel == value }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <input type="search" name="q" value="{{ q }}" placeholder="Search summaries and customers…">
+  <button type="submit">Search</button>
+  {% if q or reason or channel %}<a href="/staff?status={{ status }}" class="muted" style="font-size:13px">Clear</a>{% endif %}
+</form>
+
+<div class="list">
+  {% for t in tickets %}
+    <a class="row {{ 'closed' if t.status.value == 'closed' }}" href="/staff/tickets/{{ t.id }}">
+      <span class="num tnum">#{{ t.id }}</span>
+      <span>
+        <span class="who">{{ customer_label(t.conversation.customer_handle, t.conversation.channel) }}
+          · {{ channel_label(t.conversation.channel) }}</span>
+        <span class="what">{{ t.summary }}</span>
+      </span>
+      <span class="reason">
+        <span class="pill {{ reason_tone(t.reason) }}" data-reason="{{ t.reason.value }}"
+              title="{{ reason_help(t.reason) }}">{{ reason_label(t.reason) }}</span>
+      </span>
+      <span class="when">
+        {{ ago(t.created_at) }}
+        {% if t.status.value == 'closed' %}<br><span class="pill grey">Closed</span>{% endif %}
+      </span>
+    </a>
+  {% else %}
+    <div class="empty">
+      {% if q or reason or channel %}
+        <b>Nothing matches those filters.</b>Try clearing the search.
+      {% elif status == "open" %}
+        <b>Nothing waiting.</b>The assistant is handling every conversation right now.
+      {% else %}
+        <b>No tickets yet.</b>They appear here when the assistant hands a conversation over.
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

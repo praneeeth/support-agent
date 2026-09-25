@@ -38,3 +38,35 @@ Decision: `KB_MIN_SCORE` (0.35) applies to cosine similarity; `KB_MIN_SCORE_KEYW
 ## ADR-011: Provider-agnostic model access
 Decision: `OpenAICompatLLM` (app/agent/openai_compat.py) speaks the OpenAI chat API, so Ollama (free, local), Groq, Google AI Studio, OpenRouter, vLLM and LM Studio all work; `LLM_PROVIDER` picks between it and the Anthropic adapter. Messages stay in Anthropic shape internally and are converted at the boundary, including tool_use/tool_result blocks.
 Rationale: no paid account required to run or evaluate the agent; the deterministic guards (escalation, citation check, order verification) are model-independent, so a weaker model costs accuracy, never safety.
+
+## ADR-012: Integrations are written before their accounts exist
+Decision: every connector and channel adapter is built and tested against mock transports, reads its credentials from configuration at runtime, and reports `not_configured` (with the variable name) until they are set. Its tools are withheld from the model while unconfigured.
+Consequence: a client is switched on by pasting a token, not by a code change or a release; and a broken integration degrades to a handoff rather than a wrong answer.
+
+## ADR-013: Hotel availability comes from iCal, not a PMS
+Decision: `ical_availability` reads the per-listing calendar feeds that Airbnb, Booking.com and Vrbo already publish; busy periods come from those, everything else is free.
+Rationale: small properties rarely run a PMS, and PMS partnerships are slow. One parser covers most of the market with a link the owner copies in one click. A real PMS connector can be added later behind the same interface.
+
+## ADR-014: WhatsApp webhooks are verified and deduplicated in the channel layer
+Decision: signature check (HMAC-SHA256) rejects unsigned requests with 401; a `seen_messages` table makes repeated provider deliveries a no-op; the webhook returns 200 immediately and answers on a background task, because Meta retries on delay.
+
+## ADR-015: A reply is a list of blocks, and cards are built in code
+Decision: `/chat/message` returns `blocks` — text the model wrote, plus cards (`order_card`, `product_card`) constructed in `app/agent/blocks.py` from the same DTOs the orders module returns, plus `quick_replies`. The model never emits a card and is never asked to format one.
+Rationale: an order lookup is structured data; flattening it into a sentence loses the tracking link and makes the customer read a paragraph. Building cards from the DTO also means a card cannot state something the data does not — the prose above it can still be wrong, the card cannot.
+Consequence: a new card type is a Pydantic model plus a renderer, not a prompt change. `text` is kept alongside `blocks` so non-visual channels (WhatsApp, email) stay unchanged.
+
+## ADR-016: Widget appearance is configuration, not a fork per client
+Decision: brand, tagline, greeting, accent colour, logo, side, light/dark/auto theme and the opening suggestion chips are settings, serialised into the embed script at request time. The widget derives readable text for the accent colour by luminance, and uses CSS custom properties so dark mode is a variable swap.
+Rationale: selling the same engine to several clients must not mean a branch per client. One deployment, one `.env`, and the widget looks like the client's site.
+
+## ADR-017: Two portals, one shell, one vocabulary
+Decision: the agent portal (`/staff`) and the admin portal (`/admin`) share a Jinja environment, a stylesheet and `app/portal/labels.py`, which translates every enum that reaches a screen — `restricted_action` becomes "Needs authorisation", with a severity that drives its colour.
+Rationale: support staff and a client's operations lead are not the audience for the database schema, and two separately-styled internal tools is how an internal tool starts to look unfinished. Keeping the wording in one module means it changes once, and a vertical can override it later without touching templates.
+
+## ADR-018: Admin analytics are computed from the operational tables
+Decision: `app/admin/analytics.py` counts conversations, handovers and reasons straight from `conversations`, `messages` and `tickets`. There is no events table and no background aggregation. A conversation counts as escalated once however many tickets it produced.
+Consequence: the overview can never disagree with the inbox, and there is nothing extra to deploy or back up. If volume ever makes these queries slow, the fix is an index or a materialised daily roll-up — not a second source of truth.
+
+## ADR-019: The admin portal never handles credentials
+Decision: the integrations screen names the environment variable an integration is waiting for and shows its health, and nothing else. No secret is displayed, entered or stored through the browser, and a test asserts a configured token never appears in the rendered page.
+Rationale: an operations screen gets screenshotted, shared and screen-shared. Naming `WHATSAPP_TOKEN` is useful; showing its value is a leak waiting to happen.

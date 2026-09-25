@@ -1,8 +1,0 @@
-{% for m in ticket.conversation.messages %}
-<div class="msg {{ m.role.value }}">
-  <div class="role">{{ m.role.value }} · {{ m.created_at.strftime("%d %b %H:%M") }}</div>
-  {{ m.text }}
-</div>
-{% else %}
-<p class="muted">No messages yet.</p>
-{% endfor %}

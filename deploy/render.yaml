@@ -1,0 +1,47 @@
+# Render blueprint. Create the service from the repo, then set the secrets in the dashboard.
+# Everything not listed here has a safe default and can stay unset.
+services:
+  - type: web
+    name: support-agent
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    plan: starter            # 'free' works for demos; it sleeps when idle
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/support.db
+      - key: LLM_PROVIDER
+        value: openai_compatible
+      - key: LLM_BASE_URL
+        sync: false          # e.g. https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: STAFF_USERNAME
+        sync: false
+      - key: STAFF_PASSWORD
+        sync: false
+      - key: WIDGET_BRAND
+        sync: false
+      # Switch on later, no redeploy of code needed:
+      - key: CONNECTORS
+        sync: false          # e.g. shopify,ical_availability
+      - key: SHOPIFY_TOKEN
+        sync: false
+      - key: SHOPIFY_STORE
+        sync: false
+      - key: ICAL_URLS
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

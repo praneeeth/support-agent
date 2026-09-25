@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Ticket #{{ ticket.id }}{% endblock %}
+{% block content %}
+
+<a class="back" href="/staff">&larr; Inbox</a>
+
+<div class="head">
+  <div>
+    <h1>{{ customer_label(ticket.conversation.customer_handle, ticket.conversation.channel) }}</h1>
+    <p class="muted" style="margin:0">
+      Ticket #{{ ticket.id }} · {{ channel_label(ticket.conversation.channel) }} ·
+      opened {{ ago(ticket.created_at) }}
+    </p>
+  </div>
+  <div style="display:flex;gap:7px;align-items:center">
+    <span class="pill {{ reason_tone(ticket.reason) }}" data-reason="{{ ticket.reason.value }}">{{ reason_label(ticket.reason) }}</span>
+    <span class="pill {{ 'grey' if ticket.status.value == 'closed' else 'ok' }}">{{ STATUSES[ticket.status] }}</span>
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="thread">
+      <div id="transcript">{% include "_transcript.html" %}</div>
+
+      {% if ticket.status.value == "open" %}
+      <form class="composer" hx-post="/staff/tickets/{{ ticket.id }}/reply" hx-target="#transcript"
+            hx-on::after-request="if(event.detail.successful) this.reset()">
+        <div class="snippets">
+          {% for s in snippets %}
+            <button type="button" class="snippet"
+                    onclick="var t=this.closest('form').querySelector('textarea');t.value={{ s.text|tojson }};t.focus()">{{ s.label }}</button>
+          {% endfor %}
+        </div>
+        <textarea name="text" required aria-label="Reply to the customer"
+                  placeholder="Write to {{ customer_label(ticket.conversation.customer_handle, ticket.conversation.channel) }}…"></textarea>
+        <div class="actions">
+          <button type="submit">Send reply</button>
+          <button type="button" class="secondary" hx-post="/staff/tickets/{{ ticket.id }}/close"
+                  hx-confirm="Close this ticket and hand the conversation back to the assistant?">Close ticket</button>
+          <span class="muted" style="font-size:12.5px">Sending puts you in charge; the assistant stays quiet until you close it.</span>
+        </div>
+      </form>
+      {% else %}
+      <p class="muted" style="margin:14px 0 0">
+        This ticket is closed and the assistant has the conversation again.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <h2>Why it came to you</h2>
+      <p style="margin:0 0 8px">{{ ticket.summary }}</p>
+      <p class="muted" style="margin:0;font-size:13px">{{ reason_help(ticket.reason) }}</p>
+    </div>
+
+    <div class="panel">
+      <h2>Customer</h2>
+      <dl style="margin:0">
+        <div class="kv"><dt>Reached us by</dt><dd>{{ channel_label(ticket.conversation.channel) }}</dd></div>
+        <div class="kv"><dt>Reply address</dt><dd>{{ ticket.conversation.customer_handle or "—" }}</dd></div>
+        <div class="kv"><dt>Talking since</dt><dd>{{ ago(ticket.conversation.created_at) }}</dd></div>
+        <div class="kv"><dt>Messages</dt><dd class="tnum">{{ ticket.conversation.messages|length }}</dd></div>
+        <div class="kv"><dt>Right now</dt><dd>{{ mode_label(ticket.conversation.mode) }}</dd></div>
+      </dl>
+    </div>
+
+    {% if other_tickets %}
+    <div class="panel">
+      <h2>Earlier tickets</h2>
+      {% for t in other_tickets %}
+        <div class="kv">
+          <dt><a href="/staff/tickets/{{ t.id }}">#{{ t.id }}</a> {{ reason_label(t.reason) }}</dt>
+          <dd>{{ ago(t.created_at) }}</dd>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

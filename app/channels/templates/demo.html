@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ brand }}</title>
+  <style>
+    :root { --ink:#1c1917; --muted:#78716c; --line:#e7e5e4; --accent:#0f766e; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.6 system-ui, sans-serif; color:var(--ink); background:#fff; }
+    header { border-bottom:1px solid var(--line); padding:18px 24px; display:flex; justify-content:space-between; align-items:center; }
+    .brand { font-weight:700; letter-spacing:-.01em; }
+    nav a { margin-left:20px; color:var(--muted); text-decoration:none; font-size:15px; }
+    .hero { max-width:900px; margin:0 auto; padding:72px 24px 40px; }
+    .hero h1 { font-size:42px; line-height:1.15; margin:0 0 14px; letter-spacing:-.02em; }
+    .hero p { font-size:19px; color:var(--muted); max-width:52ch; margin:0 0 28px; }
+    .grid { max-width:900px; margin:0 auto; padding:0 24px 80px; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:18px; }
+    .card h3 { margin:0 0 6px; font-size:16px; }
+    .card p { margin:0 0 8px; color:var(--muted); font-size:14px; }
+    .card p:last-child { margin-bottom:0; }
+    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; color:var(--ink); background:#f5f5f4; padding:7px 9px; border-radius:6px; word-break:break-all; }
+    .note { max-width:900px; margin:0 auto 60px; padding:16px 20px; border-left:3px solid var(--accent); background:#f5f5f4; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">{{ brand }}</span>
+    <nav><a href="#">Shop</a><a href="#">Shipping</a><a href="#">Returns</a><a href="#">Contact</a></nav>
+  </header>
+
+  <section class="hero">
+    <h1>Everyday things, made to last.</h1>
+    <p>A demo storefront. The chat bubble in the corner is the real assistant, answering from this
+       business's own policy documents — and handing over to a person when it shouldn't answer.</p>
+  </section>
+
+  <section class="grid">
+    <div class="card"><h3>Ask a policy question</h3><p>"How long do I have to return something?" — answered from the store's own documents, with the source shown.</p></div>
+    {% if sample_order %}<div class="card"><h3>Track an order</h3><p class="mono">{{ sample_order }}</p><p>Returns a live status card. Without both the number and the checkout email, nothing is revealed.</p></div>{% endif %}
+    <div class="card"><h3>Ask about a product</h3><p>"How much is the Wool Throw Blanket?" — price and live stock, as a card.</p></div>
+    <div class="card"><h3>Push its limits</h3><p>"Cancel my order" — it refuses and fetches a human. "Do you ship to Nepal?" — it won't guess.</p></div>
+  </section>
+
+  <p class="note">Demo page, session {{ nonce }}. Replies come from the documents loaded for this
+     business; nothing here is a real order or a real purchase.</p>
+
+  <script src="/chat/widget.js" defer></script>
+</body>
+</html>
