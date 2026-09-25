@@ -24,7 +24,7 @@ from app.agent.prompts import (
     handoff_text,
     system_prompt,
 )
-from app.agent.tools import TOOLS, run_tool
+from app.agent.tools import Tool, ToolContext, resolve, run_tool, schemas
 from app.config import Settings, get_settings
 from app.handoff.models import Channel, EscalationReason, Mode, Role
 from app.handoff.service import (
@@ -60,6 +60,11 @@ class Agent:
     llm: LLMClient
     settings: Settings = field(default_factory=get_settings)
     vertical: VerticalConfig = field(default_factory=get_vertical)
+    tools: tuple[Tool, ...] = field(init=False)
+
+    def __post_init__(self) -> None:
+        # Resolved once: an unknown tool name fails here, not mid-conversation.
+        self.tools = resolve(self.vertical.tools)
 
     @property
     def clarify(self) -> str:
@@ -121,7 +126,7 @@ class Agent:
                 response = await self.llm.complete(
                     system=system_prompt(self.vertical.business),
                     messages=messages,
-                    tools=TOOLS,
+                    tools=schemas(self.tools),
                     max_tokens=self.settings.reply_max_tokens,
                 )
             except LLMError as exc:
@@ -149,7 +154,8 @@ class Agent:
             messages.append({"role": "assistant", "content": response.assistant_content()})
             results = []
             for call in response.tool_calls:
-                result = run_tool(self.session, conversation_id, call)
+                context = ToolContext(self.session, conversation_id, self.vertical.business)
+                result = run_tool(context, call, self.tools)
                 if result.escalate is not None:
                     return self._escalate(
                         conversation_id,
