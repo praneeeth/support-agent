@@ -45,7 +45,7 @@ for the whole extraction.
 ### Phase 6: second vertical (proves the abstraction)
 - [x] Task 23: `check_availability` and `booking_enquiry` tools (enquiry → ticket, never a booking)
 - [x] Task 24: `verticals/seaside-homestay/` — profile, ~25 docs, 40-case eval set
-- [ ] Task 25: Hospitality guardrails: no rate negotiation, no confirmed bookings, no promises about
+- [x] Task 25: Hospitality guardrails: no rate negotiation, no confirmed bookings, no promises about
       availability the tool didn't return
 
 ### Checkpoint F: two verticals

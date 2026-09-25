@@ -68,6 +68,29 @@ class Refusal(BaseModel):
         return value
 
 
+class Claim(BaseModel):
+    """Something an *answer* must not say unless a tool returned it in the same turn.
+
+    Checked on the model's reply, after it is written and before the customer sees it. With no
+    `requires_tool`, no tool can back it: the answer is always held back and a person takes over.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(min_length=1, max_length=60)
+    pattern: str = Field(min_length=1, max_length=600)
+    requires_tool: str = ""
+
+    @field_validator("pattern")
+    @classmethod
+    def _compiles(cls, value: str) -> str:
+        try:
+            re.compile(value)
+        except re.error as exc:
+            raise ValueError(f"not a valid regular expression: {exc}") from exc
+        return value
+
+
 class Guardrails(BaseModel):
     """Patterns a vertical *adds*. The built-in guards are always applied as well — this is
     additive by construction, so a config can tighten safety and never loosen it."""
@@ -82,8 +105,22 @@ class Guardrails(BaseModel):
     refuse: list[Refusal] = Field(default_factory=list)
     # What a reference looks like, so "where is SS-1234" is recognised as a lookup question.
     reference_pattern: str = ""
+    # Phrasings a tool answers (dates, availability), so they skip the retrieval threshold.
+    lookup: list[str] = Field(default_factory=list)
+    # Extra lines for the prompt's "things you must never do". Appended; never replacing.
+    never_say: list[str] = Field(default_factory=list)
+    # Things a reply may not claim unless a tool backed them this turn.
+    claims: list[Claim] = Field(default_factory=list)
 
-    @field_validator("restricted", "human")
+    @field_validator("never_say")
+    @classmethod
+    def _rules_are_rules(cls, value: list[str]) -> list[str]:
+        for rule in value:
+            if not rule.strip().startswith("Never") or len(rule) > 300:
+                raise ValueError(f"never_say lines start with 'Never' and stay short: {rule!r}")
+        return value
+
+    @field_validator("restricted", "human", "lookup")
     @classmethod
     def _all_compile(cls, value: list[str]) -> list[str]:
         for pattern in value:
@@ -176,6 +213,16 @@ class VerticalConfig(BaseModel):
     guardrails: Guardrails = Field(default_factory=Guardrails)
     availability: Availability | None = None
     widget: Widget = Field(default_factory=Widget)
+
+    @model_validator(mode="after")
+    def _claims_name_enabled_tools(self) -> "VerticalConfig":
+        for claim in self.guardrails.claims:
+            if claim.requires_tool and claim.requires_tool not in self.tools:
+                raise ValueError(
+                    f"claim {claim.name!r} requires tool {claim.requires_tool!r}, "
+                    "which this vertical does not enable"
+                )
+        return self
 
     @field_validator("id")
     @classmethod

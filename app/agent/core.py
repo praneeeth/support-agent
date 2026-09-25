@@ -134,12 +134,14 @@ class Agent:
         messages.append({"role": "user", "content": f"{sources_block}\n\nCustomer: {text}"})
 
         # 5. Tool-use loop.
-        used_grounded_tool = False
+        grounded_tools: set[str] = set()  # tools that returned real data this turn
         cards: list[Block] = []
         for _ in range(MAX_TOOL_ROUNDS):
             try:
                 response = await self.llm.complete(
-                    system=system_prompt(self.vertical.business),
+                    system=system_prompt(
+                        self.vertical.business, self.vertical.guardrails.never_say
+                    ),
                     messages=messages,
                     tools=schemas(self.tools),
                     max_tokens=self.settings.reply_max_tokens,
@@ -162,7 +164,7 @@ class Agent:
                     response.text,
                     hits,
                     markers,
-                    used_grounded_tool,
+                    grounded_tools,
                     cards,
                 )
 
@@ -181,7 +183,8 @@ class Agent:
                         result.summary or policy.summarise(text),
                         cards=cards,
                     )
-                used_grounded_tool = used_grounded_tool or result.grounded
+                if result.grounded:
+                    grounded_tools.add(call.name)
                 if result.card is not None:
                     cards.append(result.card)
                 results.append(
@@ -257,13 +260,24 @@ class Agent:
         answer: str,
         hits: list[Hit],
         markers: list[str],
-        used_grounded_tool: bool,
+        grounded_tools: set[str],
         cards: list[Block] | None = None,
     ) -> AgentReply:
         cited = {f"S{n}" for n in CITATION.findall(answer)} & set(markers)
-        if not answer or (not cited and not used_grounded_tool):
+        if not answer or (not cited and not grounded_tools):
             return self._miss(conversation_id, channel, customer_text)
         clean = CITATION.sub("", answer).replace("  ", " ").strip()
+        # The vertical's claims: things a reply may say only when a tool just returned them.
+        claim = self.policy.unbacked_claim(clean, grounded_tools)
+        if claim is not None:
+            log.info("Held back an answer in %s: %s", conversation_id, claim)
+            return self._escalate(
+                conversation_id,
+                channel,
+                EscalationReason.low_confidence,
+                f"Held back a reply ({claim}). Customer asked: "
+                f"{policy.summarise(customer_text, 150)}",
+            )
         record_message(self.session, conversation_id, Role.agent, clean)
         sources = tuple(dict.fromkeys(hits[markers.index(m)].source_path for m in sorted(cited)))
         cards = cards or []

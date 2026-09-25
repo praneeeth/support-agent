@@ -18,6 +18,35 @@ tools:
   - check_availability
   - booking_enquiry
 
+# Added to the built-in guards, which always apply. A homestay never haggles, never confirms a
+# stay, and never says a room is free unless the availability tool just said so.
+guardrails:
+  reference_pattern: '\bSS-\d{4}\b'
+  restricted:
+    # Rate negotiation: requests, not questions about published discounts.
+    - '\b(can|could|will|would) you\b.{0,25}\b(discount|reduce|lower|match|negotiate|do better|better (price|rate|deal))\b'
+    - '\b(give|get|offer) (me|us)\b.{0,20}\b(discount|deal|better (price|rate)|lower (price|rate))\b'
+    - '\bmatch (that|the|their|this|airbnb''s|booking''s) (price|rate)\b'
+    - '\bnegotiat\w*\b'
+    # Confirming or holding a stay: only the owner does that.
+    - '\b(please|pls|can you|could you|will you)\b.{0,10}\b(confirm|hold|block|reserve|keep)\b.{0,25}\b(booking|reservation|room|cottage|dates|it)\b'
+    - '^\s*(confirm|hold|reserve|block)\b.{0,25}\b(booking|reservation|room|cottage|dates)\b'
+  human:
+    - '\b(talk|speak|chat)\b.{0,15}\b(owner|meera|manager)\b'
+  lookup:
+    - '\b\d{4}-\d{2}-\d{2}\b'
+    - '\b(availab\w*|vacanc\w*|any rooms?|rooms? free)\b'
+  never_say:
+    - "Never say or imply that a room, date or booking is confirmed, reserved or held. Only the owner confirms a stay, once the advance is paid; use booking_enquiry to pass a request on."
+    - "Never offer, negotiate or promise a discount or a different rate. The published rates and the long-stay discount in the sources are the only prices."
+    - "Never say a room is free on particular dates unless check_availability returned that in this turn."
+  claims:
+    - name: availability not checked
+      pattern: '\b(is|are|it''s|looks|we have|there''s)\b.{0,30}\b(available|free|open)\b.{0,40}\b(on|from|for|between|those dates|these dates)\b'
+      requires_tool: check_availability
+    - name: stay promised
+      pattern: '\b(booking|reservation|room|cottage|stay|dates?)\s+(is|are|has been|have been)\s+(now\s+)?(confirmed|reserved|booked|held|secured)\b(?!\s+(only|once|when|after|until))|\b(i''ve|i have|we''ve|we have)\s+(booked|reserved|confirmed|held)\b'
+
 # Rooms, rates and closed dates. With ICAL_URLS set, the Airbnb/Booking.com calendars close
 # the whole house on their busy dates too.
 availability:

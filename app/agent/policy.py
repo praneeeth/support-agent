@@ -99,6 +99,9 @@ class Policy:
     human: re.Pattern[str]
     reference: re.Pattern[str]
     refusals: tuple[tuple[str, re.Pattern[str], str], ...]
+    lookup: re.Pattern[str] | None = None
+    # (name, pattern, tool that may back it — "" for none)
+    claims: tuple[tuple[str, re.Pattern[str], str], ...] = ()
 
     def wants_human(self, text: str) -> bool:
         return bool(self.human.search(text))
@@ -109,7 +112,17 @@ class Policy:
         return bool(self.restricted.search(text))
 
     def is_order_question(self, text: str) -> bool:
+        """A question a tool answers, so it bypasses the retrieval threshold."""
+        if self.lookup is not None and self.lookup.search(text):
+            return True
         return bool(self.reference.search(text) or _ORDER_QUESTION.search(text))
+
+    def unbacked_claim(self, answer: str, grounded_tools: set[str]) -> str | None:
+        """The name of the first thing this answer claims that no tool backed this turn."""
+        for name, pattern, tool in self.claims:
+            if pattern.search(answer) and (not tool or tool not in grounded_tools):
+                return name
+        return None
 
     def refusal_for(self, text: str) -> tuple[str, str] | None:
         """(name, reply) for the first topic this business never answers."""
@@ -131,5 +144,14 @@ def build_policy(guardrails: Guardrails) -> Policy:
         reference=reference,
         refusals=tuple(
             (r.name, re.compile(r.pattern, re.IGNORECASE), r.reply) for r in guardrails.refuse
+        ),
+        lookup=(
+            re.compile("|".join(f"(?:{p})" for p in guardrails.lookup), re.IGNORECASE)
+            if guardrails.lookup
+            else None
+        ),
+        claims=tuple(
+            (c.name, re.compile(c.pattern, re.IGNORECASE), c.requires_tool)
+            for c in guardrails.claims
         ),
     )
