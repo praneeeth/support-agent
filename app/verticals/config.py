@@ -206,6 +206,8 @@ class VerticalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(min_length=1, max_length=40)
+    # A demo pack: a short knowledge pack for showing the platform, not a real business.
+    demo: bool = False
     business: Business
     docs_dir: str = Field(min_length=1)
     # Tool names this vertical switches on. `escalate` is always available and need not be listed.

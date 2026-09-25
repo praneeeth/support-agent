@@ -1,0 +1,43 @@
+# DEMO PACK — a fictional Pune property agency. It answers process and fee questions, captures
+# leads for an agent, and never gives investment or legal advice or says a home is available.
+id: keystone-realty
+demo: true
+
+business:
+  name: Keystone Realty
+  kind: a property agency for renting, buying and selling homes
+  location: Pune, India
+  currency_symbol: "₹"
+  hours: "Mon–Sat, 10am–7pm IST"
+  reference_name: listing ID
+  reference_format: KR-1234
+
+docs_dir: docs
+
+tools:
+  - lead_capture
+
+guardrails:
+  reference_pattern: '\bKR-\d{4}\b'
+  restricted:
+    - '\b(lower|reduce|bring down|negotiate|cut)\b.{0,20}\b(the )?(rent|price|deposit|brokerage|fee)\b'
+    - '\b(hold|reserve|block)\b.{0,20}\b(the |this |that )?(flat|home|house|apartment|property)\b'
+  refuse:
+    - name: investment or legal advice
+      pattern: '\b(good|bad|right|smart|safe|wise)\s+(investment|time to (buy|sell|invest))\b|\b(will|are|do you think|going to)\b.{0,40}\b(prices?|rents?|values?|rates?)\b.{0,25}\b(go up|rise|increase|fall|drop|go down|appreciate|crash)\b|\blegal advice\b|\bis (it|this|that) legal\b|\bcan (the|my) (owner|landlord|tenant)\b.{0,20}\b(legally|evict|sue)\b'
+      reply: "I can't give investment, price-forecast or legal advice. I've asked one of our agents to talk it through with you."
+  never_say:
+    - "Never say a property is available, reserved or held for anyone. Listings change daily and only an agent confirms."
+    - "Never give legal, tax, loan or investment advice, or predict prices."
+  claims:
+    - name: availability promised
+      pattern: '\b(flat|home|house|apartment|property|unit)\s+(is|are)\s+(still\s+)?(available|reserved|held|yours)\b'
+
+widget:
+  greeting: "Hi! Ask me about renting, buying, selling or our fees — or tell me what you're looking for."
+  tagline: "Demo · Keystone Realty, Pune"
+  accent: "#b45309"
+  suggestions:
+    - What is your brokerage for renting?
+    - Which areas do you cover?
+    - I'm looking for a 2BHK to rent

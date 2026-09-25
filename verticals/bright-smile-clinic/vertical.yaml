@@ -1,0 +1,50 @@
+# DEMO PACK — a fictional dental clinic, to show the platform to clinics in a day.
+# The rule that matters: clinical questions are never answered, even though the docs contain
+# aftercare notes. They are refused before the model runs, and a person calls back.
+id: bright-smile-clinic
+demo: true
+
+business:
+  name: Bright Smile Dental
+  kind: a family dental clinic
+  location: Kothrud, Pune, India
+  currency_symbol: "₹"
+  hours: "Mon–Sat, 10am–1:30pm and 5pm–8:30pm IST"
+  reference_name: appointment reference
+  reference_format: APT-12345
+
+docs_dir: docs
+
+tools:
+  - appointment_request
+
+guardrails:
+  reference_pattern: '\bAPT-\d{5}\b'
+  human:
+    - '\b(speak|talk)\b.{0,15}\b(dentist|doctor|dr\b)'
+  refuse:
+    # Three shapes of a clinical question. Each hands over with the same line.
+    - name: symptoms
+      pattern: '\bis (it|this|that|my)\b.{0,40}\b(normal|serious|dangerous|infected)\b|\bshould i (be worried|worry)\b|\b(my|i have|i''ve got|i''m having)\b.{0,30}\b(pain|swelling|swollen|bleeding|fever|infection|ache|aching|sensitive|sensitivity|abscess|lump|ulcer)\b'
+      reply: "I can't advise on symptoms or medicines — that needs a dentist. I've asked our clinical team to call you back. If you have swelling that affects breathing or swallowing, or bleeding that won't stop, go to the nearest emergency department now."
+    - name: medicines
+      pattern: '\bhow (much|many)\b.{0,30}\b(ibuprofen|paracetamol|painkillers?|antibiotics?|medicines?|tablets?)\b|\bshould i (take|stop)\b'
+      reply: "I can't advise on symptoms or medicines — that needs a dentist. I've asked our clinical team to call you back. If you have swelling that affects breathing or swallowing, or bleeding that won't stop, go to the nearest emergency department now."
+    - name: diagnosis
+      pattern: '\bdo i (have|need)\b.{0,20}\b(an? )?(infection|root canal|antibiotics|extraction|cavity|filling)\b'
+      reply: "I can't advise on symptoms or medicines — that needs a dentist. I've asked our clinical team to call you back. If you have swelling that affects breathing or swallowing, or bleeding that won't stop, go to the nearest emergency department now."
+  never_say:
+    - "Never give medical or dental advice, diagnose, or say whether a symptom is normal, even when a source describes it."
+    - "Never say an appointment is booked or confirmed. Use appointment_request; the front desk confirms the time."
+  claims:
+    - name: appointment promised
+      pattern: '\b(appointment|slot|booking)\s+(is|has been)\s+(now\s+)?(confirmed|booked|scheduled|fixed)\b(?!\s+(only|once|when|after|until))|\b(i''ve|i have|we''ve|we have)\s+(booked|scheduled|confirmed)\b'
+
+widget:
+  greeting: "Hi! Ask me about treatments, fees, timings or booking a visit."
+  tagline: "Demo · Bright Smile Dental, Kothrud"
+  accent: "#2563eb"
+  suggestions:
+    - How much is a cleaning?
+    - Are you open on Sundays?
+    - I'd like to book a check-up

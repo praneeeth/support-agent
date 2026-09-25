@@ -55,7 +55,7 @@ for the whole extraction.
 
 ### Phase 7: demo packs
 - [x] Task 26: `appointment_request` + `lead_capture` tools
-- [ ] Task 27: clinic pack (with the clinical-advice refusal), real-estate pack, coaching pack —
+- [x] Task 27: clinic pack (with the clinical-advice refusal), real-estate pack, coaching pack —
       ~15 docs and a 20-case eval set each
 
 ## Risks and mitigations

@@ -1,0 +1,47 @@
+# DEMO PACK — a fictional career-coaching practice. It answers programme and policy questions,
+# books discovery calls as requests, never promises outcomes, and never acts as therapy.
+id: summit-coaching
+demo: true
+
+business:
+  name: Summit Coaching
+  kind: an online career and leadership coaching practice
+  location: Mumbai, India
+  currency_symbol: "₹"
+  hours: "Mon–Sat, 9am–6pm IST"
+  reference_name: client ID
+  reference_format: SC-1234
+
+docs_dir: docs
+
+tools:
+  - appointment_request
+  - lead_capture
+
+guardrails:
+  reference_pattern: '\bSC-\d{4}\b'
+  restricted:
+    - '\b(can|could|will) you\b.{0,25}\b(discount|reduce|lower|better (price|deal))\b'
+    - '\bgive (me|us)\b.{0,15}\bdiscount\b'
+  refuse:
+    - name: crisis
+      pattern: '\b(suicid\w*|kill myself|self[- ]harm|end my life|hurt myself|don''t want to (live|be alive)|no reason to live)\b'
+      reply: "I'm really sorry you're going through this. Please reach out now: call 112 if you are in danger, or Tele-MANAS on 14416 (free, 24 hours) to talk to someone. I've also let our team know."
+    - name: mental health treatment
+      pattern: '\b(treat\w*|cure|therapy|medication|diagnos\w*)\b.{0,40}\b(depress\w*|anxiety|panic|bipolar|ocd|ptsd)\b|\b(depress\w*|anxiety disorder|panic attacks?|bipolar|ocd|ptsd)\b.{0,40}\b(treat\w*|cure|therapy|medication|diagnos\w*)\b'
+      reply: "Coaching isn't a treatment for mental health, so I can't help with that here. A doctor or licensed therapist is the right support; Tele-MANAS (14416) is free and open 24 hours. I've let our team know you asked."
+  never_say:
+    - "Never promise a job, promotion, pay rise or any other outcome."
+    - "Never offer therapy, counselling or advice about mental or physical health."
+  claims:
+    - name: outcome promised
+      pattern: '\b(you will|you''ll|we will|we''ll|guaranteed to)\b.{0,20}\b(get|land|be offered|receive|win)\b.{0,20}\b(a |the )?(job|promotion|offer|raise|pay rise)\b'
+
+widget:
+  greeting: "Hi! Ask me about our programmes, prices, or book a free discovery call."
+  tagline: "Demo · Summit Coaching"
+  accent: "#7c3aed"
+  suggestions:
+    - How much is Career Clarity?
+    - Is the discovery call free?
+    - How do sessions work?
