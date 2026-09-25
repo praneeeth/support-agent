@@ -31,11 +31,16 @@ for the whole extraction.
 - [x] Task 19: Prompts and escalation copy built from the business profile
 - [x] Task 20: Tool registry; `get_order_status` / `get_product` registered and enabled by config
 - [x] Task 21: Guardrail patterns from config, with the refuse-outright category
-- [ ] Task 22: Seed, ingest and evals take `--vertical`; KB and eval paths come from config
+- [x] Task 22: Seed, ingest and evals take `--vertical`; KB and eval paths come from config
 
-### Checkpoint E: northwind unchanged
-- [ ] All existing tests pass with no edits to their assertions
-- [ ] `git diff` on `app/agent/core.py` shows no behavioural change beyond reading config
+### Checkpoint E: northwind unchanged — PASSED 2026-09-25
+- [x] All existing tests pass with no edits to their assertions
+      (`git diff feat/integrations..HEAD -- tests/` shows only fixture paths and imports;
+      no line beginning `-` contains an assertion)
+- [x] `git diff` on `app/agent/core.py` shows no behavioural change beyond reading config.
+      The one addition is the refuse-outright check, which is additive and inert for northwind
+      because its `guardrails.refuse` list is empty.
+- [x] 276 tests pass, ruff and mypy clean
 
 ### Phase 6: second vertical (proves the abstraction)
 - [ ] Task 23: `check_availability` and `booking_enquiry` tools (enquiry → ticket, never a booking)

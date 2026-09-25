@@ -70,3 +70,13 @@ Consequence: the overview can never disagree with the inbox, and there is nothin
 ## ADR-019: The admin portal never handles credentials
 Decision: the integrations screen names the environment variable an integration is waiting for and shows its health, and nothing else. No secret is displayed, entered or stored through the browser, and a test asserts a configured token never appears in the rendered page.
 Rationale: an operations screen gets screenshotted, shared and screen-shared. Naming `WHATSAPP_TOKEN` is useful; showing its value is a leak waiting to happen.
+
+## ADR-020: A customer is a folder, not a branch
+Decision: everything specific to one business — profile, documents, enabled tools, extra guardrails — lives in `verticals/<id>/vertical.yaml` and the folder beside it. `VERTICAL` selects one at startup. The launch store moved to `verticals/northwind/` unchanged, which made the existing suite the regression test for the extraction: Checkpoint E passed with no assertion edited, only fixture paths.
+Rationale: selling one engine to several industries must not mean a branch per customer. A new client is a folder and a set of documents.
+Consequence: prompts, escalation copy, currency and reference formats are built from the profile; a typo in the tool list raises `UnknownTool` when the Agent is constructed rather than mid-conversation.
+
+## ADR-021: Guardrails are additive and safety stays in code
+Decision: a vertical may add restricted-action phrasings, add ways of asking for a human, set its reference format, and declare topics it refuses outright. `build_policy` ORs those with the built-in patterns; it never replaces them. The mechanism — check before the model, hand over rather than guess, answer only with a citation or a tool result — is not configurable at all.
+Rationale: configuration is edited by whoever onboards a client, under time pressure. The worst a careless config can do is fail to catch something new; it cannot switch off what is already caught. Tests assert the built-in refusals survive a config that tries to override them.
+Consequence: a clinic can refuse to interpret symptoms even though its own documents describe them — the refusal fires before retrieval, so the document never reaches the customer.
