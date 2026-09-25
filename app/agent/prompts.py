@@ -70,6 +70,18 @@ def handoff_text(business: Business) -> dict[EscalationReason, str]:
             "I've passed this to our support team, who can verify your record another way"
             f"{when}."
         ),
+        EscalationReason.booking_enquiry: (
+            f"Thanks — I've passed your enquiry to {business.name}. This isn't a confirmed "
+            f"booking yet: someone will reply here to confirm availability and next steps{when}."
+        ),
+        EscalationReason.appointment_request: (
+            f"Thanks — I've passed your request to {business.name}. This isn't a confirmed "
+            f"appointment yet: someone will contact you to agree a time{when}."
+        ),
+        EscalationReason.lead: (
+            f"Thanks — I've passed your details to the {business.name} team, and someone will be "
+            f"in touch{when}."
+        ),
     }
 
 

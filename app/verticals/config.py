@@ -9,11 +9,12 @@ guess, never answer without a source — stays in code, so a careless config can
 """
 
 import re
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ROOT = Path("verticals")
 
@@ -98,6 +99,56 @@ class Guardrails(BaseModel):
         return value
 
 
+class Room(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(min_length=1, max_length=80)
+    sleeps: int = Field(ge=1, le=50)
+    nightly_rate: float = Field(gt=0)
+
+
+class Blocked(BaseModel):
+    """Dates a room is taken. `end` is the check-out day, so it is free that night."""
+
+    model_config = ConfigDict(frozen=True)
+
+    start: date
+    end: date
+    room: str = ""  # empty means the whole property
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "Blocked":
+        if self.end <= self.start:
+            raise ValueError("blocked end must be after start")
+        return self
+
+
+class Availability(BaseModel):
+    """Rooms, rates and closed dates, for a property with no booking system.
+
+    When ICAL_URLS is set, busy dates from those calendars close the whole property too; the
+    rooms and rates still come from here.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    rooms: list[Room] = Field(min_length=1)
+    blocked: list[Blocked] = Field(default_factory=list)
+    min_nights: int = Field(default=1, ge=1)
+    max_nights: int = Field(default=30, ge=1)
+    horizon_days: int = Field(default=365, ge=1)  # how far ahead a customer may ask
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "Availability":
+        if self.max_nights < self.min_nights:
+            raise ValueError("max_nights must be at least min_nights")
+        names = {r.name for r in self.rooms}
+        unknown = [b.room for b in self.blocked if b.room and b.room not in names]
+        if unknown:
+            raise ValueError(f"blocked dates name unknown rooms: {', '.join(unknown)}")
+        return self
+
+
 class VerticalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -107,6 +158,7 @@ class VerticalConfig(BaseModel):
     # Tool names this vertical switches on. `escalate` is always available and need not be listed.
     tools: list[str] = Field(default_factory=list)
     guardrails: Guardrails = Field(default_factory=Guardrails)
+    availability: Availability | None = None
 
     @field_validator("id")
     @classmethod

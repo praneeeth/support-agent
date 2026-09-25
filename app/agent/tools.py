@@ -6,17 +6,21 @@ wants by name; an unknown name is a startup error, not a surprise at the first c
 feature a configuration gets to remove.
 """
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy.orm import Session
 
+from app.agent import availability
 from app.agent.blocks import Block, order_card, product_card
 from app.agent.llm import ToolCall, ToolSchema
-from app.handoff.models import EscalationReason
+from app.handoff.models import ENQUIRY_REASONS, EscalationReason
+from app.integrations.base import ConnectorError
 from app.orders.service import LookupOutcome, get_product, lookup_order
-from app.verticals.config import Business
+from app.verticals.config import Business, VerticalConfig
 
 NOT_VERIFIED = (
     "No order matches those details. Tell the customer you could not verify the order and ask "
@@ -44,6 +48,7 @@ class ToolContext:
     session: Session
     conversation_id: str
     business: Business
+    vertical: VerticalConfig | None = None  # for tools that read more than the profile
 
 
 @dataclass(frozen=True)
@@ -200,12 +205,192 @@ register(
 )
 
 
+# ---------------------------------------------------------------- capture helpers
+
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+ASK_CONTACT = (
+    "Ask for an email or phone number the team can reply to, then call this tool again. "
+    "Nothing has been passed on yet."
+)
+
+
+def contact_ok(contact: str) -> bool:
+    """An email address, or something with enough digits to be a phone number."""
+    contact = contact.strip()
+    return bool(_EMAIL.match(contact)) or len(re.sub(r"\D", "", contact)) >= 7
+
+
+def _money(business: Business, amount: float) -> str:
+    return f"{business.currency_symbol}{amount:,.0f}"
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
+# ------------------------------------------------------------------ availability
+
+
+class AvailabilityInput(BaseModel):
+    check_in: date
+    check_out: date
+    guests: int = Field(default=1, ge=1, le=50)
+
+
+CANT_CHECK = "Couldn't check availability; the customer needs a person to confirm dates."
+
+
+def _run_check_availability(context: ToolContext, raw: dict[str, object]) -> ToolResult:
+    args = AvailabilityInput(**raw)
+    config = context.vertical.availability if context.vertical else None
+    if config is None:
+        return ToolResult(
+            "Availability isn't set up.",
+            escalate=EscalationReason.low_confidence,
+            summary=CANT_CHECK,
+        )
+    try:
+        answers = availability.check(
+            config, args.check_in, args.check_out, args.guests, date.today()
+        )
+    except availability.InvalidStay as exc:
+        return ToolResult(str(exc))
+    except ConnectorError:
+        return ToolResult(
+            "The calendar could not be reached.",
+            escalate=EscalationReason.low_confidence,
+            summary=CANT_CHECK,
+        )
+
+    nights = (args.check_out - args.check_in).days
+    head = (
+        f"Availability for {args.check_in:%d %b %Y} to {args.check_out:%d %b %Y} "
+        f"({_plural(nights, 'night')}, {_plural(args.guests, 'guest')}):"
+    )
+    if not answers:
+        largest = max(r.sleeps for r in config.rooms)
+        return ToolResult(
+            f"{head} no room sleeps {args.guests}; the largest sleeps {largest}.", grounded=True
+        )
+    lines = []
+    for a in answers:
+        if a.free:
+            rate = a.room.nightly_rate
+            lines.append(
+                f"- {a.room.name}: available, {_money(context.business, rate)} a night, "
+                f"{_money(context.business, rate * nights)} in total."
+            )
+        else:
+            lines.append(f"- {a.room.name}: not available.")
+    tail = (
+        "This is not a booking and nothing is held. To request it, get the guest's name and an "
+        "email or phone number and call booking_enquiry."
+    )
+    return ToolResult("\n".join([head, *lines, tail]), grounded=True)
+
+
+register(
+    Tool(
+        name="check_availability",
+        schema={
+            "name": "check_availability",
+            "description": (
+                "Check which rooms are free for a stay, with nightly rates. Dates must be exact "
+                "(YYYY-MM-DD); if the customer gives relative dates, ask for exact ones. Never "
+                "treat the result as a booking."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "check_in": {"type": "string", "description": "YYYY-MM-DD"},
+                    "check_out": {"type": "string", "description": "YYYY-MM-DD"},
+                    "guests": {"type": "integer", "minimum": 1},
+                },
+                "required": ["check_in", "check_out"],
+            },
+        },
+        run=_run_check_availability,
+    )
+)
+
+
+# --------------------------------------------------------------- booking enquiry
+
+
+class BookingEnquiryInput(BaseModel):
+    check_in: date
+    check_out: date
+    guests: int = Field(ge=1, le=50)
+    name: str = Field(min_length=1, max_length=100)
+    contact: str = Field(min_length=1, max_length=200)
+    room: str = Field(default="", max_length=80)
+    notes: str = Field(default="", max_length=500)
+
+
+def _run_booking_enquiry(context: ToolContext, raw: dict[str, object]) -> ToolResult:
+    args = BookingEnquiryInput(**raw)
+    if not contact_ok(args.contact):
+        return ToolResult(ASK_CONTACT)
+    if args.check_out <= args.check_in:
+        return ToolResult("The check-out date must be after the check-in date. Ask again.")
+    summary = (
+        f"Booking enquiry from {args.name.strip()} ({args.contact.strip()}): "
+        f"{_plural(args.guests, 'guest')}, {args.check_in.isoformat()} to "
+        f"{args.check_out.isoformat()}"
+    )
+    if args.room.strip():
+        summary += f", {args.room.strip()}"
+    summary += "."
+    if args.notes.strip():
+        summary += f" Notes: {args.notes.strip()}"
+    return ToolResult(
+        "Enquiry passed to the owner.", escalate=EscalationReason.booking_enquiry, summary=summary
+    )
+
+
+register(
+    Tool(
+        name="booking_enquiry",
+        schema={
+            "name": "booking_enquiry",
+            "description": (
+                "Pass a stay request to the owner, who confirms it personally. Needs dates, "
+                "number of guests, the guest's name and an email or phone number. This does NOT "
+                "book or hold anything; never tell the customer it is booked."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "check_in": {"type": "string", "description": "YYYY-MM-DD"},
+                    "check_out": {"type": "string", "description": "YYYY-MM-DD"},
+                    "guests": {"type": "integer", "minimum": 1},
+                    "name": {"type": "string"},
+                    "contact": {"type": "string", "description": "email or phone"},
+                    "room": {"type": "string", "description": "optional preferred room"},
+                    "notes": {"type": "string", "description": "optional, e.g. arrival time"},
+                },
+                "required": ["check_in", "check_out", "guests", "name", "contact"],
+            },
+        },
+        run=_run_booking_enquiry,
+    )
+)
+
+
 # ------------------------------------------------------------------- escalate
 
 
 class EscalateInput(BaseModel):
     reason: EscalationReason
     summary: str = Field(min_length=1, max_length=500)
+
+    @field_validator("reason")
+    @classmethod
+    def _not_an_enquiry(cls, value: EscalationReason) -> EscalationReason:
+        # An enquiry ticket is only worth something with the details its tool captures.
+        if value in ENQUIRY_REASONS:
+            raise ValueError("use the capture tool for enquiries")
+        return value
 
 
 def _run_escalate(context: ToolContext, raw: dict[str, object]) -> ToolResult:
@@ -225,7 +410,10 @@ register(
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "reason": {"type": "string", "enum": [r.value for r in EscalationReason]},
+                    "reason": {
+                        "type": "string",
+                        "enum": [r.value for r in EscalationReason if r not in ENQUIRY_REASONS],
+                    },
                     "summary": {
                         "type": "string",
                         "description": "One or two sentences for the human picking this up.",
@@ -239,5 +427,6 @@ register(
 )
 
 
-# Kept for callers that want every shipped tool (tests, the OpenAI adapter's fixtures).
-TOOLS: list[ToolSchema] = [t.schema for t in _REGISTRY.values()]
+# A fixed, representative tool set for adapter fixtures: the launch store's. Pinned, so adding a
+# tool to the registry doesn't change what those tests send.
+TOOLS: list[ToolSchema] = schemas(resolve(["get_order_status", "get_product"]))

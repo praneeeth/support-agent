@@ -38,6 +38,9 @@ class Settings(BaseSettings):
 
     # Connectors enabled for this deployment, comma-separated (e.g. "shopify,ical_availability")
     connectors: str = ""
+    # Public calendar links (Airbnb, Booking.com, Vrbo), comma-separated. Busy dates close the
+    # property for `check_availability`; unset means the vertical's own blocked dates only.
+    ical_urls: str = ""
 
     # Widget appearance. Every client gets these; nothing else about the widget is per-client.
     widget_brand: str = "Northwind Goods"

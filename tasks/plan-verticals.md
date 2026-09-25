@@ -43,7 +43,7 @@ for the whole extraction.
 - [x] 276 tests pass, ruff and mypy clean
 
 ### Phase 6: second vertical (proves the abstraction)
-- [ ] Task 23: `check_availability` and `booking_enquiry` tools (enquiry → ticket, never a booking)
+- [x] Task 23: `check_availability` and `booking_enquiry` tools (enquiry → ticket, never a booking)
 - [ ] Task 24: `verticals/seaside-homestay/` — profile, ~25 docs, 40-case eval set
 - [ ] Task 25: Hospitality guardrails: no rate negotiation, no confirmed bookings, no promises about
       availability the tool didn't return
@@ -70,5 +70,6 @@ for the whole extraction.
 
 ## Open questions
 
-- Hospitality: is availability read from a config file (fine for a demo), or does it need a real
-  channel manager / PMS integration to be sellable? Decide before Task 23.
+- ~~Hospitality: is availability read from a config file (fine for a demo), or does it need a real
+  channel manager / PMS integration to be sellable?~~ Decided 2026-09-25: iCal feeds when `ICAL_URLS`
+  is set, otherwise blocked dates in `vertical.yaml`; rooms and rates always from config. No PMS.

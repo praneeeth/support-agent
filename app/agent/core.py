@@ -169,7 +169,9 @@ class Agent:
             messages.append({"role": "assistant", "content": response.assistant_content()})
             results = []
             for call in response.tool_calls:
-                context = ToolContext(self.session, conversation_id, self.vertical.business)
+                context = ToolContext(
+                    self.session, conversation_id, self.vertical.business, self.vertical
+                )
                 result = run_tool(context, call, self.tools)
                 if result.escalate is not None:
                     return self._escalate(

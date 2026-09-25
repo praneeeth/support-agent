@@ -37,6 +37,17 @@ class EscalationReason(enum.StrEnum):
     restricted_action = "restricted_action"
     repeated_failure = "repeated_failure"
     lookup_locked = "lookup_locked"
+    # Not failures: a customer asked for something only a person can commit to, and a tool
+    # captured the details. Reachable only through the tool that captures them.
+    booking_enquiry = "booking_enquiry"
+    appointment_request = "appointment_request"
+    lead = "lead"
+
+
+# The reasons above that a capture tool files, never the model's own `escalate` call.
+ENQUIRY_REASONS = frozenset(
+    {EscalationReason.booking_enquiry, EscalationReason.appointment_request, EscalationReason.lead}
+)
 
 
 class TicketStatus(enum.StrEnum):

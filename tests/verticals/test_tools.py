@@ -42,9 +42,9 @@ def test_northwind_gets_the_tools_it_asks_for() -> None:
 
 def test_an_unknown_tool_fails_loudly_and_says_what_exists() -> None:
     with pytest.raises(UnknownTool) as caught:
-        resolve(["check_availability"])
+        resolve(["teleport_customer"])
     message = str(caught.value)
-    assert "check_availability" in message
+    assert "teleport_customer" in message
     assert "get_order_status" in message  # tells you what you could have meant
 
 
