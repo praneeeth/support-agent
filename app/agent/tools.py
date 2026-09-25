@@ -377,6 +377,125 @@ register(
 )
 
 
+# ----------------------------------------------------------- appointment request
+
+
+class AppointmentInput(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    contact: str = Field(min_length=1, max_length=200)
+    preferred_time: str = Field(min_length=1, max_length=120)
+    visit_type: str = Field(default="", max_length=120)
+    notes: str = Field(default="", max_length=500)
+
+
+def _run_appointment_request(context: ToolContext, raw: dict[str, object]) -> ToolResult:
+    args = AppointmentInput(**raw)
+    if not contact_ok(args.contact):
+        return ToolResult(ASK_CONTACT)
+    summary = (
+        f"Appointment request from {args.name.strip()} ({args.contact.strip()}): prefers "
+        f"{args.preferred_time.strip()}."
+    )
+    if args.visit_type.strip():
+        summary += f" Visit: {args.visit_type.strip()}."
+    if args.notes.strip():
+        summary += f" Notes: {args.notes.strip()}"
+    return ToolResult(
+        "Request passed to the team.",
+        escalate=EscalationReason.appointment_request,
+        summary=summary,
+    )
+
+
+register(
+    Tool(
+        name="appointment_request",
+        schema={
+            "name": "appointment_request",
+            "description": (
+                "Pass an appointment request to the team, who call back to agree a time. Needs "
+                "the customer's name, an email or phone number and a preferred day or time. "
+                "This does NOT book anything; never say an appointment is confirmed."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "contact": {"type": "string", "description": "email or phone"},
+                    "preferred_time": {"type": "string", "description": "e.g. Tuesday morning"},
+                    "visit_type": {
+                        "type": "string",
+                        "description": "the kind of visit, e.g. check-up. Never symptoms.",
+                    },
+                    "notes": {"type": "string"},
+                },
+                "required": ["name", "contact", "preferred_time"],
+            },
+        },
+        run=_run_appointment_request,
+    )
+)
+
+
+# ------------------------------------------------------------------ lead capture
+
+
+class LeadInput(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    contact: str = Field(min_length=1, max_length=200)
+    interest: str = Field(min_length=1, max_length=300)
+    budget: str = Field(default="", max_length=120)
+    timeline: str = Field(default="", max_length=120)
+    notes: str = Field(default="", max_length=500)
+
+
+def _run_lead_capture(context: ToolContext, raw: dict[str, object]) -> ToolResult:
+    args = LeadInput(**raw)
+    if not contact_ok(args.contact):
+        return ToolResult(ASK_CONTACT)
+    parts = [
+        f"Lead: {args.name.strip()} ({args.contact.strip()}), interested in "
+        f"{args.interest.strip()}."
+    ]
+    if args.budget.strip():
+        parts.append(f"Budget: {args.budget.strip()}.")
+    if args.timeline.strip():
+        parts.append(f"Timeline: {args.timeline.strip()}.")
+    if args.notes.strip():
+        parts.append(f"Notes: {args.notes.strip()}")
+    return ToolResult(
+        "Details passed to the team.", escalate=EscalationReason.lead, summary=" ".join(parts)
+    )
+
+
+register(
+    Tool(
+        name="lead_capture",
+        schema={
+            "name": "lead_capture",
+            "description": (
+                "Pass someone's interest to the team so a person follows up. Needs their name, "
+                "an email or phone number and what they are looking for. Promise nothing beyond "
+                "a follow-up."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "contact": {"type": "string", "description": "email or phone"},
+                    "interest": {"type": "string", "description": "what they want, in brief"},
+                    "budget": {"type": "string"},
+                    "timeline": {"type": "string"},
+                    "notes": {"type": "string"},
+                },
+                "required": ["name", "contact", "interest"],
+            },
+        },
+        run=_run_lead_capture,
+    )
+)
+
+
 # ------------------------------------------------------------------- escalate
 
 

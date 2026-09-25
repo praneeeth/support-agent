@@ -54,7 +54,7 @@ for the whole extraction.
 - [ ] One conversation per vertical captured as a demo transcript
 
 ### Phase 7: demo packs
-- [ ] Task 26: `appointment_request` + `lead_capture` tools
+- [x] Task 26: `appointment_request` + `lead_capture` tools
 - [ ] Task 27: clinic pack (with the clinical-advice refusal), real-estate pack, coaching pack —
       ~15 docs and a 20-case eval set each
 
