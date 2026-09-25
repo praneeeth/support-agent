@@ -8,6 +8,7 @@ its refusals sound like, but the mechanism — check before the model runs, hand
 guess, never answer without a source — stays in code, so a careless config cannot loosen it.
 """
 
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -38,6 +39,65 @@ class Business(BaseModel):
         return f"{self.name}, {self.kind}{where}"
 
 
+class Refusal(BaseModel):
+    """Something this business must never answer, whatever the documents say.
+
+    A clinic's documents may well describe a condition; the assistant still must not tell a
+    customer what their symptoms mean. Matching this hands over with the given line.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str = Field(min_length=1, max_length=60)
+    pattern: str = Field(min_length=1, max_length=400)
+    reply: str = Field(min_length=1, max_length=400)
+
+    @field_validator("pattern")
+    @classmethod
+    def _compiles(cls, value: str) -> str:
+        try:
+            re.compile(value)
+        except re.error as exc:
+            raise ValueError(f"not a valid regular expression: {exc}") from exc
+        return value
+
+
+class Guardrails(BaseModel):
+    """Patterns a vertical *adds*. The built-in guards are always applied as well — this is
+    additive by construction, so a config can tighten safety and never loosen it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    # Extra phrasings that mean "the customer is asking us to do something only a person may do".
+    restricted: list[str] = Field(default_factory=list)
+    # Extra phrasings that mean "this customer wants a person".
+    human: list[str] = Field(default_factory=list)
+    # Never answer these, even from a document.
+    refuse: list[Refusal] = Field(default_factory=list)
+    # What a reference looks like, so "where is SS-1234" is recognised as a lookup question.
+    reference_pattern: str = ""
+
+    @field_validator("restricted", "human")
+    @classmethod
+    def _all_compile(cls, value: list[str]) -> list[str]:
+        for pattern in value:
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise ValueError(f"{pattern!r} is not a valid regular expression: {exc}") from exc
+        return value
+
+    @field_validator("reference_pattern")
+    @classmethod
+    def _reference_compiles(cls, value: str) -> str:
+        if value:
+            try:
+                re.compile(value)
+            except re.error as exc:
+                raise ValueError(f"not a valid regular expression: {exc}") from exc
+        return value
+
+
 class VerticalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -46,6 +106,7 @@ class VerticalConfig(BaseModel):
     docs_dir: str = Field(min_length=1)
     # Tool names this vertical switches on. `escalate` is always available and need not be listed.
     tools: list[str] = Field(default_factory=list)
+    guardrails: Guardrails = Field(default_factory=Guardrails)
 
     @field_validator("id")
     @classmethod

@@ -16,6 +16,7 @@ from app.agent.blocks import (
     TextBlock,
 )
 from app.agent.llm import LLMClient, LLMError, Message
+from app.agent.policy import Policy, build_policy
 from app.agent.prompts import (
     ERROR_TEXT,
     SENTIMENT_PROMPT,
@@ -61,10 +62,12 @@ class Agent:
     settings: Settings = field(default_factory=get_settings)
     vertical: VerticalConfig = field(default_factory=get_vertical)
     tools: tuple[Tool, ...] = field(init=False)
+    policy: Policy = field(init=False)
 
     def __post_init__(self) -> None:
         # Resolved once: an unknown tool name fails here, not mid-conversation.
         self.tools = resolve(self.vertical.tools)
+        self.policy = build_policy(self.vertical.guardrails)
 
     @property
     def clarify(self) -> str:
@@ -85,16 +88,28 @@ class Agent:
             return AgentReply("silent")
 
         # 2. Deterministic pre-checks.
-        if policy.wants_human(text):
+        if self.policy.wants_human(text):
             return self._escalate(
                 conversation_id,
                 channel,
                 EscalationReason.customer_requested,
                 policy.summarise(text),
             )
-        if policy.wants_restricted_action(text):
+        if self.policy.wants_restricted_action(text):
             return self._escalate(
                 conversation_id, channel, EscalationReason.restricted_action, policy.summarise(text)
+            )
+
+        # Topics this business never answers, whatever its documents happen to contain.
+        refusal = self.policy.refusal_for(text)
+        if refusal is not None:
+            name, reply = refusal
+            return self._escalate(
+                conversation_id,
+                channel,
+                EscalationReason.restricted_action,
+                f"Refused ({name}): {policy.summarise(text, 150)}",
+                text=reply,
             )
 
         # 3. Frustration (two negative customer messages in a row).
@@ -108,7 +123,7 @@ class Agent:
 
         # 4. Retrieval gate.
         hits = self.kb.search(text, k=5)
-        order_question = policy.is_order_question(text)
+        order_question = self.policy.is_order_question(text)
         best = hits[0].score if hits else 0.0
         if not order_question and best < self._min_score():
             return self._miss(conversation_id, channel, text)
