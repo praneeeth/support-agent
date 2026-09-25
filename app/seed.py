@@ -12,18 +12,28 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_engine, get_session, init_db
 from app.knowledge_base.embed import Embedder, FastEmbedder
-from app.knowledge_base.ingest import IngestStats, ingest_catalog, ingest_docs
+from app.knowledge_base.ingest import IngestStats, clear_catalog, ingest_catalog, ingest_docs
 from app.orders.seed import seed_store
-from app.verticals.config import docs_dir, get_vertical
+from app.verticals.config import VerticalConfig, get_vertical
+
+# Tools that read the demo store. A vertical with none of them gets no store and no catalog.
+STORE_TOOLS = frozenset({"get_order_status", "get_product"})
 
 log = logging.getLogger(__name__)
 
 
-def seed_all(session: Session, embedder: Embedder | None = None) -> IngestStats:
+def seed_all(
+    session: Session, embedder: Embedder | None = None, vertical: VerticalConfig | None = None
+) -> IngestStats:
     settings = get_settings()
-    seed_store(session, seed=settings.seed)
-    docs = ingest_docs(session, docs_dir(), embedder=embedder)
-    catalog = ingest_catalog(session, embedder=embedder)
+    vertical = vertical or get_vertical()
+    if STORE_TOOLS & set(vertical.tools):
+        seed_store(session, seed=settings.seed)
+    docs = ingest_docs(session, settings.docs_dir or vertical.docs_dir, embedder=embedder)
+    if "get_product" in vertical.tools:
+        catalog = ingest_catalog(session, embedder=embedder)
+    else:
+        catalog = clear_catalog(session)
     return IngestStats(
         documents_written=docs.documents_written + catalog.documents_written,
         documents_deleted=docs.documents_deleted + catalog.documents_deleted,

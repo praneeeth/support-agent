@@ -35,7 +35,7 @@ from app.handoff.service import (
     record_message,
 )
 from app.knowledge_base.search import Hit, Searcher
-from app.verticals.config import VerticalConfig, get_vertical
+from app.verticals.config import VerticalConfig, get_vertical, widget_copy
 
 log = logging.getLogger(__name__)
 
@@ -310,5 +310,4 @@ class Agent:
         return AgentReply("escalated", message, escalation_reason=reason, blocks=tuple(blocks))
 
     def _suggestions(self) -> list[str]:
-        raw = [s.strip() for s in self.settings.widget_suggestions.split("|")]
-        return [s for s in raw if s]
+        return list(widget_copy(self.settings, self.vertical).suggestions)

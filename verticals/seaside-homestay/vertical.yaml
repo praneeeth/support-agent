@@ -1,0 +1,51 @@
+# Seaside Homestay — the second vertical, and the proof that a new business is config, not code.
+# A three-room family homestay in Gokarna. The owner confirms every stay personally; the
+# assistant answers questions, checks dates and passes on enquiries. It never books anything.
+id: seaside-homestay
+
+business:
+  name: Seaside Homestay
+  kind: a three-room family homestay
+  location: Gokarna, Karnataka, India
+  currency_symbol: "₹"
+  hours: "every day, 8am–8pm IST"
+  reference_name: booking reference
+  reference_format: SS-1234
+
+docs_dir: docs
+
+tools:
+  - check_availability
+  - booking_enquiry
+
+# Rooms, rates and closed dates. With ICAL_URLS set, the Airbnb/Booking.com calendars close
+# the whole house on their busy dates too.
+availability:
+  min_nights: 2
+  max_nights: 14
+  horizon_days: 365
+  rooms:
+    - name: Sea View Room
+      sleeps: 2
+      nightly_rate: 4500
+    - name: Garden Room
+      sleeps: 3
+      nightly_rate: 3800
+    - name: Family Cottage
+      sleeps: 4
+      nightly_rate: 6500
+  blocked:
+    - start: 2026-12-20   # festive season: the whole house is taken
+      end: 2027-01-06
+    - room: Sea View Room
+      start: 2026-11-13
+      end: 2026-11-16
+
+widget:
+  greeting: "Hi! Ask me about rooms, dates, getting here or anything about your stay."
+  tagline: "Replies instantly · Meera confirms every booking"
+  accent: "#0e7490"
+  suggestions:
+    - What are your room rates?
+    - How do I get there from Goa airport?
+    - Do you allow dogs?

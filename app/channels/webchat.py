@@ -25,6 +25,7 @@ from app.config import Settings, get_settings
 from app.db import get_session
 from app.handoff.models import Channel
 from app.handoff.service import conversation_mode, staff_messages_after
+from app.verticals.config import VerticalConfig, get_vertical, widget_copy
 
 router = APIRouter(prefix="/chat")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -68,18 +69,19 @@ def _rate_limited(session_id: str) -> bool:
     return len(hits) > RATE_LIMIT
 
 
-def widget_config(settings: Settings) -> dict[str, object]:
+def widget_config(settings: Settings, vertical: VerticalConfig | None = None) -> dict[str, object]:
     """Everything the widget needs to look like this client's brand."""
+    copy = widget_copy(settings, vertical or get_vertical())
     theme = settings.widget_theme if settings.widget_theme in {"light", "dark", "auto"} else "auto"
     return {
-        "brand": settings.widget_brand,
-        "tagline": settings.widget_tagline,
-        "greeting": settings.widget_greeting,
-        "accent": settings.widget_accent,
+        "brand": copy.brand,
+        "tagline": copy.tagline,
+        "greeting": copy.greeting,
+        "accent": copy.accent,
         "logo": settings.widget_logo_url,
         "position": "left" if settings.widget_position == "left" else "right",
         "theme": theme,
-        "suggestions": [s.strip() for s in settings.widget_suggestions.split("|") if s.strip()],
+        "suggestions": list(copy.suggestions),
     }
 
 
@@ -151,5 +153,9 @@ def demo(
     return templates.TemplateResponse(
         request,
         "demo.html",
-        {"brand": settings.widget_brand, "nonce": secrets.token_hex(4), "sample_order": sample},
+        {
+            "brand": widget_copy(settings, get_vertical()).brand,
+            "nonce": secrets.token_hex(4),
+            "sample_order": sample,
+        },
     )

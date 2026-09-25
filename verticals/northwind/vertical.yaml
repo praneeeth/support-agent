@@ -18,3 +18,13 @@ docs_dir: docs
 tools:
   - get_order_status
   - get_product
+
+# What the chat widget says before anyone types. WIDGET_* environment variables override these.
+widget:
+  greeting: "Hi! Ask me about orders, shipping, returns or products."
+  tagline: "Typically replies instantly"
+  accent: "#0f766e"
+  suggestions:
+    - Where is my order?
+    - What is your return policy?
+    - Do you ship internationally?

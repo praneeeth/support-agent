@@ -42,11 +42,12 @@ class Settings(BaseSettings):
     # property for `check_availability`; unset means the vertical's own blocked dates only.
     ical_urls: str = ""
 
-    # Widget appearance. Every client gets these; nothing else about the widget is per-client.
-    widget_brand: str = "Northwind Goods"
-    widget_greeting: str = "Hi! Ask me about orders, shipping, returns or products."
-    widget_tagline: str = "Typically replies instantly"
-    widget_accent: str = "#0f766e"
+    # Widget appearance. Brand, greeting, tagline, accent and suggestions come from the
+    # vertical's `widget:` block; set one of these only to override it for this deployment.
+    widget_brand: str = ""
+    widget_greeting: str = ""
+    widget_tagline: str = ""
+    widget_accent: str = ""
     widget_logo_url: str = ""  # a square image; falls back to the brand's first letter
     widget_position: str = "right"  # right | left
     widget_theme: str = "auto"  # light | dark | auto (follows the visitor's system setting)
@@ -55,10 +56,8 @@ class Settings(BaseSettings):
     demo_order_number: str = ""
     demo_order_email: str = ""
 
-    # Opening chips, pipe-separated so a question may contain a comma.
-    widget_suggestions: str = (
-        "Where is my order?|What is your return policy?|Do you ship internationally?"
-    )
+    # Opening chips, pipe-separated so a question may contain a comma. Empty: the vertical's.
+    widget_suggestions: str = ""
 
     max_turns_context: int = 10
     reply_max_tokens: int = 500

@@ -6,7 +6,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import get_settings
 from app.portal import labels
+from app.verticals.config import get_vertical, widget_copy
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 labels.register(templates)
-templates.env.globals["brand"] = get_settings().widget_brand
+templates.env.globals["brand"] = widget_copy(get_settings(), get_vertical()).brand

@@ -9,12 +9,17 @@ guess, never answer without a source — stays in code, so a careless config can
 """
 
 import re
+from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from app.config import Settings
 
 ROOT = Path("verticals")
 
@@ -149,6 +154,17 @@ class Availability(BaseModel):
         return self
 
 
+class Widget(BaseModel):
+    """What the chat widget shows before anyone types. WIDGET_* settings override each field."""
+
+    model_config = ConfigDict(frozen=True)
+
+    greeting: str = Field(default="Hi! How can I help?", max_length=300)
+    tagline: str = Field(default="Typically replies instantly", max_length=120)
+    accent: str = Field(default="#0f766e", pattern=r"^#[0-9a-fA-F]{6}$")
+    suggestions: list[str] = Field(default_factory=list, max_length=6)
+
+
 class VerticalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -159,6 +175,7 @@ class VerticalConfig(BaseModel):
     tools: list[str] = Field(default_factory=list)
     guardrails: Guardrails = Field(default_factory=Guardrails)
     availability: Availability | None = None
+    widget: Widget = Field(default_factory=Widget)
 
     @field_validator("id")
     @classmethod
@@ -211,3 +228,26 @@ def docs_dir() -> str:
     from app.config import get_settings
 
     return get_settings().docs_dir or get_vertical().docs_dir
+
+
+@dataclass(frozen=True)
+class WidgetCopy:
+    brand: str
+    tagline: str
+    greeting: str
+    accent: str
+    suggestions: tuple[str, ...]
+
+
+def widget_copy(settings: "Settings", vertical: VerticalConfig) -> WidgetCopy:
+    """The widget's words: a WIDGET_* setting when one is set, otherwise the vertical's own."""
+    w = vertical.widget
+    raw = settings.widget_suggestions
+    suggestions = [s.strip() for s in raw.split("|")] if raw.strip() else list(w.suggestions)
+    return WidgetCopy(
+        brand=settings.widget_brand or vertical.business.name,
+        tagline=settings.widget_tagline or w.tagline,
+        greeting=settings.widget_greeting or w.greeting,
+        accent=settings.widget_accent or w.accent,
+        suggestions=tuple(s for s in suggestions if s),
+    )
