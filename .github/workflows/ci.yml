@@ -38,6 +38,38 @@ jobs:
       - if: steps.gate.outputs.run == 'true'
         run: uv run pytest -q -rs --cov=app --cov-fail-under=85
 
+  docker:
+    # The image a customer would run: builds, seeds itself on start, and answers.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t support-agent:ci .
+      - name: Start container
+        run: docker run -d --name app -p 8000:8000 -e LLM_PROVIDER=openai_compatible support-agent:ci
+      - name: Wait for healthy
+        run: |
+          for i in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' app)
+            [ "$status" = "healthy" ] && exit 0
+            [ "$(docker inspect -f '{{.State.Running}}' app)" = "true" ] || break
+            sleep 3
+          done
+          docker logs app; exit 1
+      - name: Smoke test
+        run: |
+          curl -fsS localhost:8000/healthz
+          curl -fsS localhost:8000/chat/widget.js | grep -q '"brand": "Northwind Goods"'
+          curl -fsS -o /dev/null localhost:8000/chat/demo
+      - name: Seeding survives a restart
+        run: |
+          docker restart app
+          for i in $(seq 1 40); do curl -fsS localhost:8000/healthz && exit 0; sleep 3; done
+          docker logs app; exit 1
+      - if: failure()
+        run: docker logs app || true
+
   evals:
     # Real Claude calls — only when agent behaviour could change.
     needs: checks
