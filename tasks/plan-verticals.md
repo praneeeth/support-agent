@@ -49,9 +49,10 @@ for the whole extraction.
       availability the tool didn't return
 
 ### Checkpoint F: two verticals
-- [ ] Both verticals pass their own eval sets
-- [ ] Switching `VERTICAL` changes behaviour with no code edits
-- [ ] One conversation per vertical captured as a demo transcript
+- [ ] Both verticals pass their own eval sets — golden sets and runner built; needs a real model
+- [x] Switching `VERTICAL` changes behaviour with no code edits (prompt, tools, guardrails,
+      widget copy, seeded docs; `tests/verticals/test_homestay.py`)
+- [ ] One conversation per vertical captured as a demo transcript — needs a real model
 
 ### Phase 7: demo packs
 - [x] Task 26: `appointment_request` + `lead_capture` tools

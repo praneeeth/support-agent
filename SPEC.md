@@ -1,7 +1,7 @@
 # Spec: Support Agent
 
 Status: **Capability map approved 2026-09-18; extended 2026-09-25 with integrations, portals and
-verticals.** Module specs live in `spec/SPEC-<module-id>.md`.
+verticals. Every module built as of 2026-09-28.** Module specs live in `spec/SPEC-<module-id>.md`.
 
 ## Objective
 
@@ -32,14 +32,15 @@ is `northwind`, a fictional home-goods shop.
 | `channel-whatsapp` | WhatsApp Cloud API webhook + send | built, keys not set |
 | `agent-portal` | Inbox, filters, conversation view, reply | done |
 | `admin-portal` | Overview, knowledge manager, playground, integration health | done |
-| `verticals` | One engine, many businesses: config, tools, guardrails per vertical | phase 5 of 7 |
-| `evals` | Golden test set; answer correctness, escalation accuracy, leak checks | specced |
-| `channel-email` | Inbound webhook + outbound reply | not started |
+| `verticals` | One engine, many businesses: config, tools, guardrails per vertical | done: 2 launch + 3 demo |
+| `evals` | Golden test set; answer correctness, escalation accuracy, leak checks | built, not yet run on a real model |
+| `channel-email` | Inbound webhook + outbound reply (Postmark) | built, keys not set |
 
 Specs written: knowledge-base, orders, handoff, agent-core, evals, integrations, verticals.
 
 **What is not yet true**: nothing has run against a real model (only a scripted double and a local
-stub), so answer quality is unmeasured; `evals` is the module that fixes that and it is not built.
+stub), so answer quality is still unmeasured. `evals` is built and gates CI once a model key is set
+(`LLM_API_KEY` or `ANTHROPIC_API_KEY` as a repo secret); its first real run is the next step.
 
 ## Tech stack
 
@@ -141,6 +142,6 @@ def get_order_status(session: Session, order_number: str, email: str) -> OrderSt
 ## Open questions
 
 - Hosting target for the public demo (Render / Fly.io / Railway) — decide before selling to anyone
-- Email provider (Postmark vs SendGrid inbound parse) — decide before `channel-email`
+- ~~Email provider~~ — decided 2026-09-25: Postmark (ADR-026)
 - Which model judges the eval set when the answering model is a small local one
 - Whether background agents (draft reply, knowledge-gap analyst) become a module of their own
