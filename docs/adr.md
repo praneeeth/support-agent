@@ -100,6 +100,8 @@ Decision: Postmark inbound webhook with Basic-auth credentials in the URL (Postm
 
 ## ADR-027: Retrieval threshold measured, 0.35 → 0.55
 Decision: with bge-small, unrelated text commonly scores 0.4–0.55 cosine. Measured 2026-09-28 on every vertical's policy questions against 12 off-topic questions: at 0.35, ~55 of 60 off-topic questions passed the gate; at 0.55, 5 of 60 pass and 1 of ~112 on-topic questions misses (it gets a clarifying question). Replies must still cite a source or hand over, so what slips through is still guarded.
+First found and set independently on `feat/agent-core` (6c09732, 2026-09-22) from Northwind
+measurements alone; the cross-vertical numbers above confirm it.
 Consequence: re-measure when the embedding model or a vertical's documents change significantly.
 
 ## ADR-028: Eval thresholds can be raised, never lowered
