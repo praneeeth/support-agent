@@ -13,6 +13,7 @@ Set the variables, restart, done. No code changes.
 | **Shopify** | `SHOPIFY_TOKEN`, `SHOPIFY_STORE` | Client's admin → Settings → Apps → Develop apps → custom app with `read_orders`, `read_products`. No app review. | 2 min |
 | **Availability (iCal)** | `ICAL_URLS` (comma-separated), `ICAL_LISTING` | Airbnb: Listing → Availability → Sync calendars → Export. Booking.com and Vrbo have the same. | 2 min |
 | **WhatsApp** | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` | Meta app → WhatsApp product. Test number works with no business verification. | 20 min |
+| **Email (Postmark)** | `POSTMARK_SERVER_TOKEN`, `POSTMARK_FROM`, `POSTMARK_INBOUND_USER`, `POSTMARK_INBOUND_PASSWORD` | Postmark server → API Tokens; a verified sender address; the inbound credentials are two strings you invent. | 15 min |
 | **Model** | `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` | Ollama locally (no key), or Groq / Google AI Studio free tier | 5 min |
 
 `CONNECTORS=shopify,ical_availability` chooses which connectors this deployment enables.
@@ -37,6 +38,20 @@ or an availability answer. Health shows `degraded` with the reason.
 - Meta retries; repeated message ids are ignored, so a customer never gets the same answer twice.
 - Meta's 24-hour rule: outside that window only pre-approved templates may be sent. We don't send
   templates, so a late reply waits for a human instead of failing loudly.
+
+## Email specifics
+
+- In Postmark's inbound settings, set the webhook URL to
+  `https://POSTMARK_INBOUND_USER:POSTMARK_INBOUND_PASSWORD@<your-host>/channels/email`. Postmark
+  doesn't sign inbound webhooks; these Basic-auth credentials are its documented protection, and
+  a request without them gets a 401. With no credentials set, the endpoint rejects everything.
+- Postmark retries; a repeated `MessageID` is answered once.
+- Quoted history is dropped (Postmark's `StrippedTextReply` when present). Auto-replies, bulk mail,
+  bounces and mail from our own address are ignored, so an out-of-office can't start a loop.
+- One conversation per sender address. Bot replies thread onto the customer's email
+  (`In-Reply-To`/`References`); staff replies from the inbox start a new `Re:` message.
+- Staff can reply by email only once Postmark is configured. Until then the inbox says the channel
+  can't deliver, and nothing is recorded as sent. WhatsApp behaves the same way.
 
 ## Adding another connector
 

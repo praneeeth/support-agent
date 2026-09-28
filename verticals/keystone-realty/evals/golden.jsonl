@@ -1,0 +1,20 @@
+{"id": "kr-policy-01", "category": "policy", "turns": ["What is your brokerage for renting?"], "expect": {"kind": "answer", "must_include": [["one month", "1 month"]], "source_doc": "fees.md"}}
+{"id": "kr-policy-02", "category": "policy", "turns": ["What do you charge to sell my flat?"], "expect": {"kind": "answer", "must_include": ["1%"], "source_doc": "fees.md"}}
+{"id": "kr-policy-03", "category": "policy", "turns": ["Which areas do you cover?"], "expect": {"kind": "answer", "must_include": ["Baner"], "source_doc": "areas.md"}}
+{"id": "kr-policy-04", "category": "policy", "turns": ["What documents do I need to rent a flat?"], "expect": {"kind": "answer", "must_include": [["salary slip", "PAN", "Aadhaar"]], "source_doc": "renting-documents.md"}}
+{"id": "kr-policy-05", "category": "policy", "turns": ["How much security deposit do owners usually ask for?"], "expect": {"kind": "answer", "must_include": [["2 to 3", "2-3", "two to three"]], "source_doc": "security-deposit.md"}}
+{"id": "kr-policy-06", "category": "policy", "turns": ["How long is a rental agreement usually?"], "expect": {"kind": "answer", "must_include": ["11"], "source_doc": "rental-agreement.md"}}
+{"id": "kr-policy-07", "category": "policy", "turns": ["What do you charge for property management?"], "expect": {"kind": "answer", "must_include": ["8%"], "source_doc": "property-management.md"}}
+{"id": "kr-policy-08", "category": "policy", "turns": ["Do viewings cost anything?"], "expect": {"kind": "answer", "must_include": [["free", "nothing"]], "source_doc": "viewings.md"}}
+{"id": "kr-policy-09", "category": "policy", "turns": ["Do you sell commercial property?"], "expect": {"kind": "answer", "must_include": [["don't", "do not", "no"]], "source_doc": "areas.md"}}
+{"id": "kr-policy-10", "category": "policy", "turns": ["Can NRIs sell through you without coming to India?"], "expect": {"kind": "answer", "must_include": [["power of attorney", "POA"]], "source_doc": "nri-services.md"}}
+{"id": "kr-lead-01", "category": "lead", "turns": ["Looking for a 2BHK to rent in Baner, budget ₹35,000, moving in November. Sara, sara@example.com"], "expect": {"kind": "escalated", "reason": "lead"}}
+{"id": "kr-lead-02", "category": "lead", "turns": ["I want to sell my 3BHK in Kothrud.", "Vikram Rao, 98220 33445"], "expect": {"kind": "escalated", "reason": "lead"}}
+{"id": "kr-lead-03", "category": "lead", "turns": ["We're a family of four looking to buy in Wakad under ₹1.2 crore. Call me on +91 99700 12121, Neha"], "expect": {"kind": "escalated", "reason": "lead"}}
+{"id": "kr-advice-01", "category": "advice", "turns": ["Is Hinjewadi a good investment right now?"], "expect": {"kind": "escalated", "reason": "restricted_action"}}
+{"id": "kr-advice-02", "category": "advice", "turns": ["Will property prices in Baner go up next year?"], "expect": {"kind": "escalated", "reason": "restricted_action"}}
+{"id": "kr-restricted-01", "category": "restricted", "turns": ["Can you get the owner to lower the rent by 5,000?"], "expect": {"kind": "escalated", "reason": "restricted_action"}}
+{"id": "kr-human-01", "category": "human", "turns": ["I'd like to speak to an agent please."], "expect": {"kind": "escalated", "reason": "customer_requested"}}
+{"id": "kr-policy-11", "category": "policy", "turns": ["Who pays the society maintenance?"], "expect": {"kind": "answer", "must_include": [["tenant", "agreement", "listing"]], "source_doc": "maintenance-charges.md"}}
+{"id": "kr-out_of_scope-01", "category": "out_of_scope", "turns": ["What's the weather like in Pune this week?", "And next week?"], "expect": {"kind": "escalated", "reason": "repeated_failure"}}
+{"id": "kr-angry-01", "category": "angry", "turns": ["Your agent didn't turn up for the viewing, this is useless.", "Nobody has replied since yesterday, I'm fed up!!"], "expect": {"kind": "escalated", "reason": "negative_sentiment"}}

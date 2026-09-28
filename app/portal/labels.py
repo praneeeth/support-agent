@@ -41,6 +41,21 @@ REASONS: dict[EscalationReason, tuple[str, str, str]] = {
         "Too many failed order checks. This customer needs verifying by hand.",
         "urgent",
     ),
+    EscalationReason.booking_enquiry: (
+        "Booking enquiry",
+        "Dates, guests and contact details captured. Nothing is booked until you confirm.",
+        "info",
+    ),
+    EscalationReason.appointment_request: (
+        "Appointment request",
+        "A preferred time and contact details. Nothing is scheduled until you confirm.",
+        "info",
+    ),
+    EscalationReason.lead: (
+        "New lead",
+        "Someone interested, with what they want and how to reach them.",
+        "info",
+    ),
 }
 
 CHANNELS: dict[Channel, str] = {

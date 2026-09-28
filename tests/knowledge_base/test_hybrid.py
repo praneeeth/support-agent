@@ -12,7 +12,7 @@ from app.knowledge_base.ingest import embed_missing, ingest_docs
 from app.knowledge_base.models import KbChunk
 from app.knowledge_base.search import KnowledgeBase
 
-DOCS = Path("data/docs")
+DOCS = Path("verticals/northwind/docs")
 
 
 @pytest.fixture

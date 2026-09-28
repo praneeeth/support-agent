@@ -8,13 +8,15 @@ from sqlalchemy.orm import Session
 
 from app.agent.core import MAX_TOOL_ROUNDS, Agent, AgentReply
 from app.agent.llm import LLMError, LLMResponse, ScriptedLLM, ToolCall
-from app.agent.prompts import CLARIFY_TEXT
+from app.agent.prompts import clarify_text
 from app.config import Settings
 from app.handoff.models import Channel, EscalationReason, Mode, Role, Ticket
 from app.handoff.service import conversation_mode, create_ticket
 from app.knowledge_base.search import Hit
+from app.verticals.config import load_vertical
 
 CID = "conv-1"
+CLARIFY_TEXT = clarify_text(load_vertical("northwind").business)
 
 
 class FakeKB:

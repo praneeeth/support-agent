@@ -80,7 +80,7 @@ def llm() -> ScriptedLLM:
 
 @pytest.fixture
 def client(session: Session, llm: ScriptedLLM, adapter: WhatsAppAdapter) -> Iterator[TestClient]:
-    ingest_docs(session, "data/docs")
+    ingest_docs(session, "verticals/northwind/docs")
     app = create_app()
 
     def _session() -> Iterator[Session]:

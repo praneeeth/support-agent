@@ -16,15 +16,16 @@ from app.agent.blocks import (
     TextBlock,
 )
 from app.agent.llm import LLMClient, LLMError, Message
+from app.agent.policy import Policy, build_policy
 from app.agent.prompts import (
-    CLARIFY_TEXT,
     ERROR_TEXT,
-    HANDOFF_TEXT,
     SENTIMENT_PROMPT,
-    SYSTEM_PROMPT,
+    clarify_text,
     format_sources,
+    handoff_text,
+    system_prompt,
 )
-from app.agent.tools import TOOLS, run_tool
+from app.agent.tools import Tool, ToolContext, resolve, run_tool, schemas
 from app.config import Settings, get_settings
 from app.handoff.models import Channel, EscalationReason, Mode, Role
 from app.handoff.service import (
@@ -34,6 +35,7 @@ from app.handoff.service import (
     record_message,
 )
 from app.knowledge_base.search import Hit, Searcher
+from app.verticals.config import VerticalConfig, get_vertical, widget_copy
 
 log = logging.getLogger(__name__)
 
@@ -58,6 +60,18 @@ class Agent:
     kb: Searcher
     llm: LLMClient
     settings: Settings = field(default_factory=get_settings)
+    vertical: VerticalConfig = field(default_factory=get_vertical)
+    tools: tuple[Tool, ...] = field(init=False)
+    policy: Policy = field(init=False)
+
+    def __post_init__(self) -> None:
+        # Resolved once: an unknown tool name fails here, not mid-conversation.
+        self.tools = resolve(self.vertical.tools)
+        self.policy = build_policy(self.vertical.guardrails)
+
+    @property
+    def clarify(self) -> str:
+        return clarify_text(self.vertical.business)
 
     async def handle_message(
         self,
@@ -74,16 +88,28 @@ class Agent:
             return AgentReply("silent")
 
         # 2. Deterministic pre-checks.
-        if policy.wants_human(text):
+        if self.policy.wants_human(text):
             return self._escalate(
                 conversation_id,
                 channel,
                 EscalationReason.customer_requested,
                 policy.summarise(text),
             )
-        if policy.wants_restricted_action(text):
+        if self.policy.wants_restricted_action(text):
             return self._escalate(
                 conversation_id, channel, EscalationReason.restricted_action, policy.summarise(text)
+            )
+
+        # Topics this business never answers, whatever its documents happen to contain.
+        refusal = self.policy.refusal_for(text)
+        if refusal is not None:
+            name, reply = refusal
+            return self._escalate(
+                conversation_id,
+                channel,
+                EscalationReason.restricted_action,
+                f"Refused ({name}): {policy.summarise(text, 150)}",
+                text=reply,
             )
 
         # 3. Frustration (two negative customer messages in a row).
@@ -97,7 +123,7 @@ class Agent:
 
         # 4. Retrieval gate.
         hits = self.kb.search(text, k=5)
-        order_question = policy.is_order_question(text)
+        order_question = self.policy.is_order_question(text)
         best = hits[0].score if hits else 0.0
         if not order_question and best < self._min_score():
             return self._miss(conversation_id, channel, text)
@@ -108,14 +134,16 @@ class Agent:
         messages.append({"role": "user", "content": f"{sources_block}\n\nCustomer: {text}"})
 
         # 5. Tool-use loop.
-        used_grounded_tool = False
+        grounded_tools: set[str] = set()  # tools that returned real data this turn
         cards: list[Block] = []
         for _ in range(MAX_TOOL_ROUNDS):
             try:
                 response = await self.llm.complete(
-                    system=SYSTEM_PROMPT,
+                    system=system_prompt(
+                        self.vertical.business, self.vertical.guardrails.never_say
+                    ),
                     messages=messages,
-                    tools=TOOLS,
+                    tools=schemas(self.tools),
                     max_tokens=self.settings.reply_max_tokens,
                 )
             except LLMError as exc:
@@ -136,14 +164,17 @@ class Agent:
                     response.text,
                     hits,
                     markers,
-                    used_grounded_tool,
+                    grounded_tools,
                     cards,
                 )
 
             messages.append({"role": "assistant", "content": response.assistant_content()})
             results = []
             for call in response.tool_calls:
-                result = run_tool(self.session, conversation_id, call)
+                context = ToolContext(
+                    self.session, conversation_id, self.vertical.business, self.vertical
+                )
+                result = run_tool(context, call, self.tools)
                 if result.escalate is not None:
                     return self._escalate(
                         conversation_id,
@@ -152,7 +183,8 @@ class Agent:
                         result.summary or policy.summarise(text),
                         cards=cards,
                     )
-                used_grounded_tool = used_grounded_tool or result.grounded
+                if result.grounded:
+                    grounded_tools.add(call.name)
                 if result.card is not None:
                     cards.append(result.card)
                 results.append(
@@ -228,13 +260,24 @@ class Agent:
         answer: str,
         hits: list[Hit],
         markers: list[str],
-        used_grounded_tool: bool,
+        grounded_tools: set[str],
         cards: list[Block] | None = None,
     ) -> AgentReply:
         cited = {f"S{n}" for n in CITATION.findall(answer)} & set(markers)
-        if not answer or (not cited and not used_grounded_tool):
+        if not answer or (not cited and not grounded_tools):
             return self._miss(conversation_id, channel, customer_text)
         clean = CITATION.sub("", answer).replace("  ", " ").strip()
+        # The vertical's claims: things a reply may say only when a tool just returned them.
+        claim = self.policy.unbacked_claim(clean, grounded_tools)
+        if claim is not None:
+            log.info("Held back an answer in %s: %s", conversation_id, claim)
+            return self._escalate(
+                conversation_id,
+                channel,
+                EscalationReason.low_confidence,
+                f"Held back a reply ({claim}). Customer asked: "
+                f"{policy.summarise(customer_text, 150)}",
+            )
         record_message(self.session, conversation_id, Role.agent, clean)
         sources = tuple(dict.fromkeys(hits[markers.index(m)].source_path for m in sorted(cited)))
         cards = cards or []
@@ -247,7 +290,7 @@ class Agent:
         """Low-confidence: clarify once, escalate on the second consecutive miss."""
         conv = get_or_create_conversation(self.session, conversation_id, Channel.webchat, "")
         agent_turns = [m for m in conv.messages if m.role is Role.agent]
-        if agent_turns and agent_turns[-1].text == CLARIFY_TEXT:
+        if agent_turns and agent_turns[-1].text == self.clarify:
             return self._escalate(
                 conversation_id,
                 channel,
@@ -255,12 +298,12 @@ class Agent:
                 f"Two questions in a row the assistant could not answer. "
                 f"Last: {policy.summarise(customer_text, 150)}",
             )
-        record_message(self.session, conversation_id, Role.agent, CLARIFY_TEXT)
+        record_message(self.session, conversation_id, Role.agent, self.clarify)
         return AgentReply(
             "clarify",
-            CLARIFY_TEXT,
+            self.clarify,
             blocks=(
-                TextBlock(text=CLARIFY_TEXT, tone="notice"),
+                TextBlock(text=self.clarify, tone="notice"),
                 QuickRepliesBlock(options=self._suggestions()),
             ),
         )
@@ -275,11 +318,10 @@ class Agent:
         cards: list[Block] | None = None,
     ) -> AgentReply:
         create_ticket(self.session, conversation_id, reason, summary, channel)
-        message = text or HANDOFF_TEXT[reason]
+        message = text or handoff_text(self.vertical.business)[reason]
         record_message(self.session, conversation_id, Role.agent, message)
         blocks: list[Block] = [*(cards or []), TextBlock(text=message, tone="handoff")]
         return AgentReply("escalated", message, escalation_reason=reason, blocks=tuple(blocks))
 
     def _suggestions(self) -> list[str]:
-        raw = [s.strip() for s in self.settings.widget_suggestions.split("|")]
-        return [s for s in raw if s]
+        return list(widget_copy(self.settings, self.vertical).suggestions)

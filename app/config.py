@@ -7,10 +7,13 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "sqlite:///./support.db"
-    docs_dir: str = "data/docs"
+    # Which business this deployment serves: the folder under verticals/.
+    vertical: str = "northwind"
+    # Overrides the vertical's own docs folder; empty means use it.
+    docs_dir: str = ""
     seed: int = 42
 
-    kb_min_score: float = 0.55  # semantic similarity, used when vectors are available
+    kb_min_score: float = 0.55  # cosine similarity (bge-small); measured, see docs/adr.md
     kb_min_score_keyword: float = 0.15  # BM25 fallback scores sit on a different scale
     embedding_model: str = "BAAI/bge-small-en-v1.5"
 
@@ -32,15 +35,24 @@ class Settings(BaseSettings):
     whatsapp_phone_id: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_verify_token: str = ""
+    # Email via Postmark (inert until set; see docs/integrations.md)
+    postmark_server_token: str = ""
+    postmark_from: str = ""  # the support address replies come from
+    postmark_inbound_user: str = ""  # Basic-auth credentials in the inbound webhook URL
+    postmark_inbound_password: str = ""
 
     # Connectors enabled for this deployment, comma-separated (e.g. "shopify,ical_availability")
     connectors: str = ""
+    # Public calendar links (Airbnb, Booking.com, Vrbo), comma-separated. Busy dates close the
+    # property for `check_availability`; unset means the vertical's own blocked dates only.
+    ical_urls: str = ""
 
-    # Widget appearance. Every client gets these; nothing else about the widget is per-client.
-    widget_brand: str = "Northwind Goods"
-    widget_greeting: str = "Hi! Ask me about orders, shipping, returns or products."
-    widget_tagline: str = "Typically replies instantly"
-    widget_accent: str = "#0f766e"
+    # Widget appearance. Brand, greeting, tagline, accent and suggestions come from the
+    # vertical's `widget:` block; set one of these only to override it for this deployment.
+    widget_brand: str = ""
+    widget_greeting: str = ""
+    widget_tagline: str = ""
+    widget_accent: str = ""
     widget_logo_url: str = ""  # a square image; falls back to the brand's first letter
     widget_position: str = "right"  # right | left
     widget_theme: str = "auto"  # light | dark | auto (follows the visitor's system setting)
@@ -49,10 +61,15 @@ class Settings(BaseSettings):
     demo_order_number: str = ""
     demo_order_email: str = ""
 
-    # Opening chips, pipe-separated so a question may contain a comma.
-    widget_suggestions: str = (
-        "Where is my order?|What is your return policy?|Do you ship internationally?"
-    )
+    # Opening chips, pipe-separated so a question may contain a comma. Empty: the vertical's.
+    widget_suggestions: str = ""
+
+    # Eval judge: checks that an answer is faithful to its sources. Empty provider = no judge
+    # (deterministic checks only). Same providers as the assistant; the model id is config.
+    judge_provider: str = ""  # "" | anthropic | openai_compatible
+    judge_model: str = ""
+    judge_base_url: str = ""  # openai_compatible only; empty = LLM_BASE_URL
+    judge_api_key: str = ""  # empty = ANTHROPIC_API_KEY / LLM_API_KEY for that provider
 
     max_turns_context: int = 10
     reply_max_tokens: int = 500

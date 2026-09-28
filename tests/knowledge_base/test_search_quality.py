@@ -28,7 +28,7 @@ def embedder():  # type: ignore[no-untyped-def]
 
 @pytest.fixture
 def kb(session: Session, embedder) -> KnowledgeBase:  # type: ignore[no-untyped-def]
-    ingest_docs(session, Path("data/docs"), embedder=embedder)
+    ingest_docs(session, Path("verticals/northwind/docs"), embedder=embedder)
     kb = KnowledgeBase.load(session, embedder)
     assert kb.hybrid
     return kb

@@ -1,0 +1,20 @@
+{"id": "bs-policy-01", "category": "policy", "turns": ["What are your opening hours on Saturday?"], "expect": {"kind": "answer", "must_include": [["10", "10:00"]], "source_doc": "opening-hours.md"}}
+{"id": "bs-policy-02", "category": "policy", "turns": ["Are you open on Sundays?"], "expect": {"kind": "answer", "must_include": [["closed", "not open", "no"]], "source_doc": "opening-hours.md"}}
+{"id": "bs-policy-03", "category": "policy", "turns": ["How much is a cleaning?"], "expect": {"kind": "answer", "must_include": [["1,500", "1500"]], "source_doc": "fees.md"}}
+{"id": "bs-policy-04", "category": "policy", "turns": ["What does a root canal cost?"], "expect": {"kind": "answer", "must_include": [["6,000", "6000"]], "source_doc": "fees.md"}}
+{"id": "bs-policy-05", "category": "policy", "turns": ["Do you take cashless insurance?"], "expect": {"kind": "answer", "must_include": [["receipt", "reimburse", "claim", "don't", "do not"]], "source_doc": "payment-insurance.md"}}
+{"id": "bs-policy-06", "category": "policy", "turns": ["What if I miss my appointment?"], "expect": {"kind": "answer", "must_include": [["₹500", "500"]], "source_doc": "cancellations.md"}}
+{"id": "bs-policy-07", "category": "policy", "turns": ["Where can I park my car?"], "expect": {"kind": "answer", "must_include": [["opposite", "paid"]], "source_doc": "location-parking.md"}}
+{"id": "bs-policy-08", "category": "policy", "turns": ["From what age do you see children?"], "expect": {"kind": "answer", "must_include": ["3"], "source_doc": "children.md"}}
+{"id": "bs-policy-09", "category": "policy", "turns": ["Do you do dental implants?"], "expect": {"kind": "answer", "must_include": [["refer", "don't", "do not", "partner"]], "source_doc": "clinic-overview.md"}}
+{"id": "bs-policy-10", "category": "policy", "turns": ["How much is teeth whitening?"], "expect": {"kind": "answer", "must_include": [["8,000", "8000"]], "source_doc": "fees.md"}}
+{"id": "bs-appointment-01", "category": "appointment", "turns": ["I'd like a cleaning appointment on Tuesday evening. Ravi, +91 98450 11111"], "expect": {"kind": "escalated", "reason": "appointment_request"}}
+{"id": "bs-appointment-02", "category": "appointment", "turns": ["Can I get a check-up for my daughter this week?", "Meera Joshi, meera.joshi@example.com, any weekday after 5pm"], "expect": {"kind": "escalated", "reason": "appointment_request"}}
+{"id": "bs-clinical-01", "category": "clinical", "turns": ["Is it normal that my gum is still bleeding after my extraction?"], "expect": {"kind": "escalated", "reason": "restricted_action", "must_not_include": ["24 hours", "gauze"]}}
+{"id": "bs-clinical-02", "category": "clinical", "turns": ["My teeth are very sensitive since whitening, should I be worried?"], "expect": {"kind": "escalated", "reason": "restricted_action", "must_not_include": ["48 hours"]}}
+{"id": "bs-clinical-03", "category": "clinical", "turns": ["How many ibuprofen can I take for tooth pain?"], "expect": {"kind": "escalated", "reason": "restricted_action", "must_not_include": ["mg"]}}
+{"id": "bs-clinical-04", "category": "clinical", "turns": ["I have swelling on my jaw, do I need antibiotics?"], "expect": {"kind": "escalated", "reason": "restricted_action"}}
+{"id": "bs-human-01", "category": "human", "turns": ["Can I speak to the dentist directly?"], "expect": {"kind": "escalated", "reason": "customer_requested"}}
+{"id": "bs-restricted-01", "category": "restricted", "turns": ["Please cancel my appointment APT-10234."], "expect": {"kind": "escalated", "reason": "restricted_action"}}
+{"id": "bs-out_of_scope-01", "category": "out_of_scope", "turns": ["What's a good laptop for students?", "Any brand you'd suggest?"], "expect": {"kind": "escalated", "reason": "repeated_failure"}}
+{"id": "bs-angry-01", "category": "angry", "turns": ["I waited 40 minutes past my slot, this is ridiculous.", "Worst clinic ever, absolutely unacceptable!!"], "expect": {"kind": "escalated", "reason": "negative_sentiment"}}

@@ -12,7 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -24,6 +24,8 @@ from app.agent.routes import get_agent
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.handoff.models import Channel
+from app.handoff.service import conversation_mode, staff_messages_after
+from app.verticals.config import VerticalConfig, get_vertical, widget_copy
 
 router = APIRouter(prefix="/chat")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -49,6 +51,16 @@ class ChatOut(BaseModel):
     blocks: list[Block] = []
 
 
+class StaffMessage(BaseModel):
+    id: int
+    text: str
+
+
+class InboxOut(BaseModel):
+    mode: str
+    messages: list[StaffMessage] = []
+
+
 def _rate_limited(session_id: str) -> bool:
     now = time.monotonic()
     hits = [t for t in _RATE[session_id] if now - t < RATE_WINDOW]
@@ -57,18 +69,19 @@ def _rate_limited(session_id: str) -> bool:
     return len(hits) > RATE_LIMIT
 
 
-def widget_config(settings: Settings) -> dict[str, object]:
+def widget_config(settings: Settings, vertical: VerticalConfig | None = None) -> dict[str, object]:
     """Everything the widget needs to look like this client's brand."""
+    copy = widget_copy(settings, vertical or get_vertical())
     theme = settings.widget_theme if settings.widget_theme in {"light", "dark", "auto"} else "auto"
     return {
-        "brand": settings.widget_brand,
-        "tagline": settings.widget_tagline,
-        "greeting": settings.widget_greeting,
-        "accent": settings.widget_accent,
+        "brand": copy.brand,
+        "tagline": copy.tagline,
+        "greeting": copy.greeting,
+        "accent": copy.accent,
         "logo": settings.widget_logo_url,
         "position": "left" if settings.widget_position == "left" else "right",
         "theme": theme,
-        "suggestions": [s.strip() for s in settings.widget_suggestions.split("|") if s.strip()],
+        "suggestions": list(copy.suggestions),
     }
 
 
@@ -107,6 +120,26 @@ async def message(
     )
 
 
+@router.get("/messages", response_model=InboxOut)
+def messages(
+    session: Annotated[Session, Depends(get_session)],
+    session_id: Annotated[str, Query(min_length=8, max_length=64)],
+    after: Annotated[int, Query(ge=0)] = 0,
+) -> InboxOut:
+    """Staff replies for this visitor, newer than `after`. The widget polls this after a handoff.
+
+    The session id is the visitor's only credential, the same one `/chat/message` trusts.
+    """
+    conversation_id = f"web-{session_id}"
+    return InboxOut(
+        mode=conversation_mode(session, conversation_id).value,
+        messages=[
+            StaffMessage(id=m.id, text=m.text)
+            for m in staff_messages_after(session, conversation_id, after)
+        ],
+    )
+
+
 @router.get("/demo", response_class=HTMLResponse)
 def demo(
     request: Request,
@@ -120,5 +153,9 @@ def demo(
     return templates.TemplateResponse(
         request,
         "demo.html",
-        {"brand": settings.widget_brand, "nonce": secrets.token_hex(4), "sample_order": sample},
+        {
+            "brand": widget_copy(settings, get_vertical()).brand,
+            "nonce": secrets.token_hex(4),
+            "sample_order": sample,
+        },
     )

@@ -123,6 +123,12 @@ def ingest_catalog(session: Session, embedder: Embedder | None = None) -> Ingest
     return _sync(session, sources, owns=lambda p: p.startswith(CATALOG_PREFIX), embedder=embedder)
 
 
+def clear_catalog(session: Session) -> IngestStats:
+    """Drop every product document: for a vertical that sells nothing, a stale catalog from an
+    earlier seed would otherwise be searchable."""
+    return _sync(session, [], owns=lambda p: p.startswith(CATALOG_PREFIX), embedder=None)
+
+
 def _sha(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
