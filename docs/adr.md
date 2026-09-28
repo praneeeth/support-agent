@@ -33,7 +33,7 @@ Decision: the first low-confidence miss asks the customer to rephrase (no ticket
 Decision: a regex decides when a frustration check is worth a model call; Claude then confirms the current and previous customer message. Keeps the cost at roughly one extra call per angry conversation instead of one per message.
 
 ## ADR-010: Two retrieval thresholds
-Decision: `KB_MIN_SCORE` (0.35) applies to cosine similarity; `KB_MIN_SCORE_KEYWORD` (0.15) applies when the knowledge base has no vectors, because BM25 scores are on a different scale.
+Decision: `KB_MIN_SCORE` (0.55; was 0.35, see ADR-027) applies to cosine similarity; `KB_MIN_SCORE_KEYWORD` (0.15) applies when the knowledge base has no vectors, because BM25 scores are on a different scale.
 
 ## ADR-011: Provider-agnostic model access
 Decision: `OpenAICompatLLM` (app/agent/openai_compat.py) speaks the OpenAI chat API, so Ollama (free, local), Groq, Google AI Studio, OpenRouter, vLLM and LM Studio all work; `LLM_PROVIDER` picks between it and the Anthropic adapter. Messages stay in Anthropic shape internally and are converted at the boundary, including tool_use/tool_result blocks.
@@ -80,3 +80,28 @@ Consequence: prompts, escalation copy, currency and reference formats are built 
 Decision: a vertical may add restricted-action phrasings, add ways of asking for a human, set its reference format, and declare topics it refuses outright. `build_policy` ORs those with the built-in patterns; it never replaces them. The mechanism — check before the model, hand over rather than guess, answer only with a citation or a tool result — is not configurable at all.
 Rationale: configuration is edited by whoever onboards a client, under time pressure. The worst a careless config can do is fail to catch something new; it cannot switch off what is already caught. Tests assert the built-in refusals survive a config that tries to override them.
 Consequence: a clinic can refuse to interpret symptoms even though its own documents describe them — the refusal fires before retrieval, so the document never reaches the customer.
+
+## ADR-022: Staff replies are routed by channel, and web chat is pull-based
+Decision: the inbox sends through a `ChannelRouter`. Web chat has no push channel, so the widget polls `GET /chat/messages` after a handoff and the stored transcript is the delivery. WhatsApp and email are offered only once configured; a channel that can't deliver returns 503 and nothing is recorded as sent.
+Rationale: the inbox used an in-memory recording sender, so no customer ever saw a human reply.
+
+## ADR-023: Availability comes from iCal feeds, else the vertical's config
+Decision: `check_availability` reads rooms, rates and closed dates from `vertical.yaml`; when `ICAL_URLS` is set, busy dates from those calendars close the whole property. No PMS integration. A feed that can't be fetched hands over.
+
+## ADR-024: Capture tools file tickets with their own reasons
+Decision: `booking_enquiry`, `appointment_request` and `lead_capture` file tickets with new reasons (`booking_enquiry`, `appointment_request`, `lead`). The model's own `escalate` tool can't use them, so every such ticket carries the details its tool captured. Nothing in the platform books, confirms or schedules.
+
+## ADR-025: Claims — a guard on the reply, not just the question
+Decision: a vertical may list `claims` its replies can make only when a named tool returned real data that turn (or never). A matching reply is held back and a person takes over. Additive like every guardrail; a claim naming a tool the vertical doesn't enable is a startup error.
+Rationale: "no promises about availability the tool didn't return" can't be checked before the model runs.
+
+## ADR-026: Email over Postmark, protected by Basic auth
+Decision: Postmark inbound webhook with Basic-auth credentials in the URL (Postmark doesn't sign inbound webhooks); outbound through its API over httpx, no new dependency. One conversation per sender address.
+
+## ADR-027: Retrieval threshold measured, 0.35 → 0.55
+Decision: with bge-small, unrelated text commonly scores 0.4–0.55 cosine. Measured 2026-09-28 on every vertical's policy questions against 12 off-topic questions: at 0.35, ~55 of 60 off-topic questions passed the gate; at 0.55, 5 of 60 pass and 1 of ~112 on-topic questions misses (it gets a clarifying question). Replies must still cite a source or hand over, so what slips through is still guarded.
+Consequence: re-measure when the embedding model or a vertical's documents change significantly.
+
+## ADR-028: Eval thresholds can be raised, never lowered
+Decision: each vertical's `evals:` block sets its bar with a floor of 90% answer / 95% escalation; command-line thresholds can only raise it. Any cross-customer leak fails the run regardless of scores. The optional judge uses a strict one-word verdict because current Claude models reject `temperature`.
+
