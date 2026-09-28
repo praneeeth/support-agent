@@ -13,6 +13,8 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      FASTEMBED_CACHE_PATH: ${{ github.workspace }}/.cache/fastembed
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -23,13 +25,18 @@ jobs:
         run: |
           if [ -f pyproject.toml ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; fi
       - if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: .cache/fastembed
+          key: fastembed-bge-small-en-v1.5
+      - if: steps.gate.outputs.run == 'true'
         run: uv sync --frozen
       - if: steps.gate.outputs.run == 'true'
         run: uv run ruff check . && uv run ruff format --check .
       - if: steps.gate.outputs.run == 'true'
         run: uv run mypy app
       - if: steps.gate.outputs.run == 'true'
-        run: uv run pytest -q --cov=app --cov-fail-under=85
+        run: uv run pytest -q -rs --cov=app --cov-fail-under=85
 
   evals:
     # Real Claude calls — only when agent behaviour could change.

@@ -61,9 +61,9 @@ items, sizing/care guides, contact hours.
 **Acceptance criteria:**
 - [ ] ≥ 30 files, each with `title`, `category`, `updated`
 - [ ] No two docs contradict each other (review checklist in PR description)
-- [ ] 20 search-quality queries drafted, each with its expected doc, in `tests/knowledge_base/queries.yaml`
+- [ ] 20 search-quality queries drafted, each with its expected doc, in `tests/knowledge_base/queries.json`
 **Dependencies:** 1
-**Files:** `data/docs/*.md`, `tests/knowledge_base/queries.yaml`
+**Files:** `data/docs/*.md`, `tests/knowledge_base/queries.json`
 **Scope:** M (content-heavy)
 
 ## Task 6: Ingest and keyword search, end-to-end
@@ -72,7 +72,10 @@ SQLite; `search()` returns `Hit`s using BM25 only.
 **Acceptance criteria:**
 - [ ] Ingest of `data/docs` creates chunks; re-ingest with no changes writes 0 rows
 - [ ] Editing one doc re-writes only that doc's chunks
-- [ ] `search("how long do returns take")` returns the returns doc first
+- [ ] `search("return window for items")` returns the returns doc first
+  *(Changed during build: BM25 alone ranks "as long as" text above the returns doc for
+  "how long do returns take"; that paraphrase is asserted on hybrid search in Task 7.
+  BM25-only baseline: 13/20 on the quality queries.)*
 **Dependencies:** 5
 **Files:** `app/knowledge_base/models.py`, `app/knowledge_base/ingest.py`, `app/knowledge_base/search.py`, `tests/knowledge_base/test_ingest.py`
 **Scope:** M
