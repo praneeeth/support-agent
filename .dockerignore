@@ -2,3 +2,11 @@
 .venv
 *.db
 .env
+.cache
+.mypy_cache
+.ruff_cache
+.pytest_cache
+__pycache__
+evals/results
+evals-summary.md
+.ocr

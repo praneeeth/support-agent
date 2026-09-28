@@ -5,6 +5,12 @@ services:
     env_file: [{path: .env, required: false}]
     environment:
       DATABASE_URL: sqlite:////data/support.db
+      # Which business to serve: any folder under verticals/. Override in .env.
+      VERTICAL: ${VERTICAL:-northwind}
+      # The model runs outside the container. For Ollama on the host:
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+    extra_hosts: ["host.docker.internal:host-gateway"]
     volumes: [data:/data]
+    restart: unless-stopped
 volumes:
   data:
