@@ -202,6 +202,17 @@ class Widget(BaseModel):
     suggestions: list[str] = Field(default_factory=list, max_length=6)
 
 
+class Evals(BaseModel):
+    """The vertical's golden set and the bar it must clear. Thresholds can be raised, not lowered
+    below the platform floor, so a config can't quietly make the gate easier."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str = "evals/golden.jsonl"  # relative to the vertical folder
+    min_answer: float = Field(default=0.90, ge=0.90, le=1.0)
+    min_escalation: float = Field(default=0.95, ge=0.95, le=1.0)
+
+
 class VerticalConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -215,6 +226,7 @@ class VerticalConfig(BaseModel):
     guardrails: Guardrails = Field(default_factory=Guardrails)
     availability: Availability | None = None
     widget: Widget = Field(default_factory=Widget)
+    evals: Evals = Field(default_factory=Evals)
 
     @model_validator(mode="after")
     def _claims_name_enabled_tools(self) -> "VerticalConfig":
@@ -262,6 +274,9 @@ def load_vertical(vertical_id: str, root: Path | str = ROOT) -> VerticalConfig:
     # docs_dir is written relative to the vertical folder, so a pack is movable.
     docs = raw.get("docs_dir", "docs")
     raw["docs_dir"] = str(folder / docs)
+    evals = dict(raw.get("evals") or {})
+    evals["path"] = str(folder / evals.get("path", "evals/golden.jsonl"))
+    raw["evals"] = evals
     return VerticalConfig(**raw)
 
 

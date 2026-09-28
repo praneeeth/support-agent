@@ -64,7 +64,7 @@ Seed:      uv run python -m app.seed [--vertical northwind]
 Test:      uv run pytest -q
 Lint:      uv run ruff check . && uv run ruff format --check .
 Types:     uv run mypy app
-Evals:     uv run python -m evals.run --min-answer 0.90 --min-escalation 0.95   (not built yet)
+Evals:     uv run python -m evals.run [--vertical northwind] --min-answer 0.90 --min-escalation 0.95
 Docker:    docker compose up --build
 ```
 
@@ -89,7 +89,7 @@ app/
   admin/                  routes.py, analytics.py
 verticals/
   northwind/              vertical.yaml + docs/   — one folder per business
-evals/                    golden.jsonl, run.py    (not built yet)
+evals/                    run.py, cases.py, score.py, judge.py (golden sets live per vertical)
 tests/                    mirrors app/ layout
 spec/                     module specs · tasks/  build plans · docs/adr.md  decisions
 ```

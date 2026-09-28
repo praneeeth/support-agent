@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     # Opening chips, pipe-separated so a question may contain a comma. Empty: the vertical's.
     widget_suggestions: str = ""
 
+    # Eval judge: checks that an answer is faithful to its sources. Empty provider = no judge
+    # (deterministic checks only). Same providers as the assistant; the model id is config.
+    judge_provider: str = ""  # "" | anthropic | openai_compatible
+    judge_model: str = ""
+    judge_base_url: str = ""  # openai_compatible only; empty = LLM_BASE_URL
+    judge_api_key: str = ""  # empty = ANTHROPIC_API_KEY / LLM_API_KEY for that provider
+
     max_turns_context: int = 10
     reply_max_tokens: int = 500
 
