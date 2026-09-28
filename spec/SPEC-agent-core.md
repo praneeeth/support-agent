@@ -9,7 +9,7 @@ answer or an escalation — never a confident guess.
 
 ```python
 async def handle_message(conversation_id: str, channel: Channel, text: str) -> AgentReply
-# AgentReply = {kind: "answer" | "escalated" | "silent", text: str, sources: list[str],
+# AgentReply = {kind: "answer" | "clarify" | "escalated" | "silent", text: str, sources: list[str],
 #               escalation_reason: EscalationReason | None}
 ```
 
@@ -23,17 +23,23 @@ Also exposed over HTTP for testing and for channels: `POST /v1/messages`, and st
    - Explicit human request ("agent", "human", "real person"…) → escalate `customer_requested`
    - Refund/cancel/change-payment intent (keyword + Claude-classified) → escalate `restricted_action`
 3. Retrieve top-5 from knowledge-base. If best score < `KB_MIN_SCORE` **and** the question isn't an
-   order-status question → escalate `low_confidence`.
+   order-status question → a *low-confidence miss* (see step 7).
 4. Call Claude with: system prompt (store persona, rules, "answer only from provided sources"),
    last 10 turns, retrieved chunks, and tools `get_order_status`, `get_product`, `escalate`.
 5. Claude must either answer citing source ids, or call `escalate` with reason + summary.
-6. Post-check: answer with no cited source and no tool result → convert to escalation `low_confidence`.
-7. Two consecutive `low_confidence` in a conversation → next one is `repeated_failure`.
-8. Negative sentiment (Claude-classified, cheap call) on 2 consecutive messages → `negative_sentiment`.
+6. Post-check: answer with no cited source and no tool result → a *low-confidence miss*.
+7. **Clarify once, then hand off** (decided 2026-09-19): the first low-confidence miss returns
+   `clarify` (bot asks the customer to rephrase/add detail; no ticket). A second consecutive miss
+   escalates with `repeated_failure`. A good answer resets the count. Claude calling `escalate`
+   with `low_confidence`, or an API error, still escalates immediately with `low_confidence`.
+8. Negative sentiment on 2 consecutive customer messages → `negative_sentiment`. A keyword
+   pre-filter decides when to spend a classification call, then Claude confirms both messages
+   (build note 2026-09-19: avoids one extra call on every message).
 
 ## Config
 
 `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `KB_MIN_SCORE` (default 0.35, tuned by evals),
+`KB_MIN_SCORE_KEYWORD` (default 0.15, used when the knowledge base has no vectors),
 `MAX_TURNS_CONTEXT` (10), `REPLY_MAX_TOKENS` (500)
 
 ## Acceptance criteria
