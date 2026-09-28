@@ -15,8 +15,12 @@ Built with an automated pipeline: [agent-skills](https://github.com/addyosmani/a
 |---|---|
 | `orders` — demo store data, verified order lookup, lockout | done |
 | `knowledge-base` — 33 policy docs, hybrid keyword + vector search | done |
-| `handoff` — tickets, conversation modes, staff UI | done |
+| `handoff` — tickets, conversation modes | done |
+| Agent portal — inbox with filters and search, conversation view | done |
+| Admin portal — overview, knowledge, playground, integrations | done |
 | `agent-core` — Claude agent, tools, escalation, HTTP API | done |
+| Web chat widget — cards, quick replies, theming, dark mode | done |
+| Integrations: Shopify, iCal availability, WhatsApp | built, keys not set |
 | `evals` — golden test set and scoring | next |
 | `channel-webchat` / `channel-email` / `channel-whatsapp` | not started |
 
@@ -57,7 +61,9 @@ Smaller models follow the "cite your source" rule less reliably, so expect more 
 replies. The safety behaviour does not depend on the model: refunds, cancellations and order
 verification are enforced in code, before and after the model runs.
 
-- Staff queue: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
+- Demo storefront with the chat widget: http://127.0.0.1:8000/chat/demo
+- Agent inbox: http://127.0.0.1:8000/staff (user `staff`, password from `.env`)
+- Admin portal: http://127.0.0.1:8000/admin — overview, knowledge, playground, integration health
 - Health: http://127.0.0.1:8000/healthz
 - Ask the agent something:
 
@@ -91,6 +97,31 @@ spec/                 module specs · tasks/  build plans · docs/adr.md  design
 ```
 
 `CLAUDE.md` tells coding agents how to work in this repo.
+`docs/integrations.md` lists every integration and the variables that switch it on.
+
+## Embedding the widget on a client's site
+
+```html
+<script src="https://your-host/chat/widget.js" defer></script>
+```
+
+That's the whole installation. No build step, no dependencies, no cookies.
+
+A reply arrives as a list of blocks, so the widget renders more than prose:
+
+- **Order card** — status pill, a four-step delivery timeline, items, dates, carrier and a
+  "Track package" link built from the carrier's public tracking URL
+- **Product card** — price, stock ("Only 3 left"), SKU and category
+- **Quick replies** — opening suggestions, and follow-ups after an order card
+- **Handoff banner** — visibly different, so the customer knows a person is taking over
+- Sources under each answer, timestamps, unread badge, full-screen on a phone
+
+Cards are built in `app/agent/blocks.py` from the same DTOs the orders module returns — the model
+never writes a card, so a card cannot claim something the data does not say.
+
+Appearance is configuration, not code: `WIDGET_BRAND`, `WIDGET_ACCENT`, `WIDGET_LOGO_URL`,
+`WIDGET_POSITION`, `WIDGET_THEME` (light/dark/auto) and `WIDGET_SUGGESTIONS`. Text on the accent
+colour is chosen by luminance, so a pale brand colour still reads.
 
 ## Code review without an API key
 

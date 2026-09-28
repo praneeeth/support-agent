@@ -130,3 +130,43 @@ def test_queue_with_100_tickets_renders_fast(client: TestClient, session: Sessio
     elapsed = time.perf_counter() - t
     assert resp.status_code == 200 and resp.text.count("issue ") >= 100
     assert elapsed < 0.3
+
+
+def test_queue_shows_plain_language_not_enum_values(client: TestClient, session: Session) -> None:
+    _ticket(session)
+    html = client.get("/staff", auth=AUTH).text
+    assert "Needs authorisation" in html
+    assert ">restricted_action<" not in html  # the raw value stays in a data attribute only
+
+
+def test_queue_filters_by_status_reason_and_search(client: TestClient, session: Session) -> None:
+    from app.handoff.service import close_ticket
+
+    first = _ticket(session, "c1", "Refund for a broken lamp")
+    create_ticket(
+        session, "c2", EscalationReason.customer_requested, "Wants a person", Channel.webchat
+    )
+    close_ticket(session, first)
+
+    open_only = client.get("/staff", auth=AUTH, params={"status": "open"}).text
+    assert "Wants a person" in open_only and "broken lamp" not in open_only
+
+    closed_only = client.get("/staff", auth=AUTH, params={"status": "closed"}).text
+    assert "broken lamp" in closed_only and "Wants a person" not in closed_only
+
+    by_reason = client.get(
+        "/staff", auth=AUTH, params={"status": "all", "reason": "customer_requested"}
+    ).text
+    assert "Wants a person" in by_reason and "broken lamp" not in by_reason
+
+    searched = client.get("/staff", auth=AUTH, params={"status": "all", "q": "lamp"}).text
+    assert "broken lamp" in searched and "Wants a person" not in searched
+
+
+def test_unknown_filter_values_are_ignored_not_fatal(client: TestClient, session: Session) -> None:
+    _ticket(session)
+    resp = client.get(
+        "/staff", auth=AUTH, params={"status": "nonsense", "reason": "bogus", "channel": "pigeon"}
+    )
+    assert resp.status_code == 200
+    assert "Needs authorisation" in resp.text

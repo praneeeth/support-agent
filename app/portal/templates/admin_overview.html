@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+
+<div class="head">
+  <div>
+    <h1>Overview</h1>
+    <p class="muted" style="margin:0">Everything below is counted from live conversations — there is no separate tracking.</p>
+  </div>
+</div>
+
+<div class="tiles">
+  <div class="tile">
+    <div class="label">Conversations</div>
+    <div class="value tnum">{{ o.conversations }}</div>
+    <div class="note">{{ o.customer_messages }} customer messages</div>
+  </div>
+  <div class="tile">
+    <div class="label">Handled without a person</div>
+    <div class="value tnum">{{ o.handled_pct }}%</div>
+    <div class="note">{{ o.handled }} of {{ o.conversations }}</div>
+  </div>
+  <div class="tile">
+    <div class="label">Handed over</div>
+    <div class="value tnum">{{ o.escalated }}</div>
+    <div class="note">conversations that needed a person</div>
+  </div>
+  <div class="tile">
+    <div class="label">Waiting now</div>
+    <div class="value tnum">{{ o.tickets_open }}</div>
+    <div class="note"><a href="/staff">Open the inbox</a></div>
+  </div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <h2>Last {{ o.days|length }} days</h2>
+    {% if o.busiest %}
+      <div class="chart">
+        {% for d in o.days %}
+          <div class="col" title="{{ d.day.strftime('%d %b') }}: {{ d.total }} conversations, {{ d.escalated }} handed over">
+            {% if d.escalated %}
+              <div class="stack escalated" style="height:{{ (100 * d.escalated / o.busiest)|round(1) }}%"></div>
+            {% endif %}
+            {% if d.handled > 0 %}
+              <div class="stack handled" style="height:{{ (100 * d.handled / o.busiest)|round(1) }}%"></div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="chart-x">
+        {% for d in o.days %}<span>{{ d.day.strftime('%d') if loop.index0 % 2 == 0 else '' }}</span>{% endfor %}
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--series-handled)"></i>Handled by the assistant</span>
+        <span><i style="background:var(--series-escalated)"></i>Handed over</span>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:10px 0 0">
+        Busiest day: {{ o.busiest }} conversations. Hover a bar for that day's split.
+      </p>
+    {% else %}
+      <p class="muted">No conversations in this window yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <h2>Why conversations were handed over</h2>
+    {% if o.reasons %}
+      <div class="bars">
+        {% for reason, count in o.reasons %}
+          <div>
+            <div class="name">{{ reason_label(reason) }}</div>
+            <div class="bar">
+              <div class="track"><div class="fill" style="width:{{ (100 * count / o.reasons[0][1])|round(1) }}%"></div></div>
+              <div class="count tnum">{{ count }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">Nothing handed over yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px">
+  <h2>Questions it couldn't answer</h2>
+  {% if o.unanswered %}
+    <p class="muted" style="margin:0 0 10px;font-size:13px">
+      Each of these is a gap in the knowledge base. Add a document that covers it and the
+      assistant stops handing it over.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Ticket</th><th>What was asked</th><th>Reason</th><th>When</th></tr></thead>
+        <tbody>
+          {% for t in o.unanswered %}
+            <tr>
+              <td><a href="/staff/tickets/{{ t.id }}">#{{ t.id }}</a></td>
+              <td>{{ t.summary }}</td>
+              <td><span class="pill {{ reason_tone(t.reason) }}">{{ reason_label(t.reason) }}</span></td>
+              <td class="muted">{{ ago(t.created_at) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">Nothing so far — every question has been covered by the documents.</p>
+  {% endif %}
+</div>
+{% endblock %}

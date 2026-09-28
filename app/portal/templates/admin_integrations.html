@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Integrations{% endblock %}
+{% block content %}
+
+<div class="head">
+  <div>
+    <h1>Integrations</h1>
+    <p class="muted" style="margin:0">Each one is built and tested. Setting its variables switches it on; no release needed.</p>
+  </div>
+</div>
+
+<div class="note-box">
+  Credentials are never entered or shown here. Set them as environment variables on the server —
+  this screen only names the variable it is waiting for.
+</div>
+
+<div class="scroll">
+  <table>
+    <thead>
+      <tr><th>Integration</th><th>What it does</th><th>Status</th><th>Detail</th><th>Set this</th></tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>
+            <strong>{{ r.name.replace("_", " ")|title }}</strong><br>
+            <span class="muted" style="font-size:12px">{{ r.kind }}</span>
+          </td>
+          <td class="muted">{{ blurb.get(r.name, "—") }}</td>
+          <td><span class="pill {{ tones[r.status] }}">{{ words[r.status] }}</span></td>
+          <td class="muted">{{ r.detail }}</td>
+          <td><code>{{ r.env }}</code></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="panel" style="margin-top:16px">
+  <h2>Model</h2>
+  <dl style="margin:0">
+    <div class="kv"><dt>Answering with</dt><dd class="mono">{{ model }}</dd></div>
+    <div class="kv"><dt>If it is unreachable</dt><dd>Conversations hand over to a person instead of guessing.</dd></div>
+  </dl>
+</div>
+{% endblock %}

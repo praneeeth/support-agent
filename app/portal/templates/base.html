@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Inbox{% endblock %} · {{ brand }}</title>
+  <script src="/static/htmx-2.0.4.min.js"></script>
+  <link rel="stylesheet" href="/static/portal.css">
+</head>
+<body>
+  <header class="topbar">
+    <span class="brand">{{ brand }} <span>· Support</span></span>
+    <nav class="tabs">
+      <a href="/staff" class="{{ 'on' if section == 'inbox' }}">Inbox{% if open_count %} ({{ open_count }}){% endif %}</a>
+      <a href="/admin" class="{{ 'on' if section == 'overview' }}">Overview</a>
+      <a href="/admin/knowledge" class="{{ 'on' if section == 'knowledge' }}">Knowledge</a>
+      <a href="/admin/playground" class="{{ 'on' if section == 'playground' }}">Playground</a>
+      <a href="/admin/integrations" class="{{ 'on' if section == 'integrations' }}">Integrations</a>
+    </nav>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
