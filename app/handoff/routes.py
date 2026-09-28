@@ -188,7 +188,8 @@ def reply(
         raise HTTPException(status.HTTP_409_CONFLICT, "Ticket is closed") from exc
     except ChannelUnavailable as exc:
         raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE, "Replies on this channel aren't connected yet"
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "This channel can't deliver replies right now; nothing was sent",
         ) from exc
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc

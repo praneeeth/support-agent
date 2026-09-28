@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     whatsapp_phone_id: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_verify_token: str = ""
+    # Email via Postmark (inert until set; see docs/integrations.md)
+    postmark_server_token: str = ""
+    postmark_from: str = ""  # the support address replies come from
+    postmark_inbound_user: str = ""  # Basic-auth credentials in the inbound webhook URL
+    postmark_inbound_password: str = ""
 
     # Connectors enabled for this deployment, comma-separated (e.g. "shopify,ical_availability")
     connectors: str = ""

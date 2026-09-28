@@ -1,3 +1,4 @@
+import httpx
 import pytest
 from sqlalchemy.orm import Session
 
@@ -34,8 +35,18 @@ def test_unsendable_reply_is_not_recorded(session: Session) -> None:
     assert t.conversation.mode is Mode.waiting_human
 
 
-def test_default_router_covers_webchat_and_whatsapp() -> None:
-    router = build_router(Settings())
+def test_router_offers_whatsapp_only_once_it_can_deliver() -> None:
+    """An unconfigured WhatsApp used to accept staff replies and drop them."""
+    assert Channel.whatsapp not in build_router(Settings()).senders
+    router = build_router(Settings(whatsapp_token="t", whatsapp_phone_id="1"))
     assert isinstance(router.senders[Channel.webchat], WebchatOutbox)
     assert isinstance(router.senders[Channel.whatsapp], WhatsAppAdapter)
-    assert Channel.email not in router.senders
+
+
+def test_a_provider_failure_is_reported_not_recorded() -> None:
+    class Down:
+        def send(self, channel: Channel, recipient: str, text: str) -> None:
+            raise httpx.ConnectError("down")
+
+    with pytest.raises(ChannelUnavailable):
+        ChannelRouter({Channel.email: Down()}).send(Channel.email, "a@example.com", "hi")
